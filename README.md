@@ -1,36 +1,61 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# SlipLab — AI sports betting analyst
 
-## Getting Started
+> Before you place your bet, have an analyst review it.
 
-First, run the development server:
+SlipLab is **not a sportsbook**. Users never place bets here. It evaluates the
+picks and parlays a user is already considering: per-leg scores, bull/bear
+cases, correlation, expected game script, the weakest leg, and ways to improve
+the slip. The product name is temporary and lives in `src/config/brand.ts`.
+
+## Stack
+
+- Next.js 16 (App Router, Cache Components, Turbopack) · React 19 · TypeScript
+- Tailwind CSS v4 · shadcn/ui (Radix) · lucide icons · Geist
+- Supabase (Postgres, Auth, RLS) via `@supabase/ssr`
+- Vitest for the analysis engine
+- Zod for env/input validation
+
+## Getting started
 
 ```bash
+npm install
+cp .env.example .env.local   # fill in Supabase keys when you have them
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Without Supabase keys the app runs in demo mode: everything that doesn't need
+an account works, and all sports data comes from the mock provider (labelled
+"Demo data" in the UI).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Scripts
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+| Script | What it does |
+| --- | --- |
+| `npm run dev` | Dev server |
+| `npm run build` | Production build |
+| `npm run typecheck` | Generates route types, then `tsc --noEmit` |
+| `npm run lint` | ESLint |
+| `npm test` | Vitest (analysis engine) |
 
-## Learn More
+## Project layout
 
-To learn more about Next.js, take a look at the following resources:
+```
+src/
+  app/                 Routes. (app)/ shares the responsive shell.
+  components/          UI. ui/ is shadcn; the rest is product components.
+  config/              brand.ts (naming/copy), nav.ts
+  lib/
+    types/             Domain types (sports, picks, analysis, bets)
+    sports/            SportsDataProvider interface + mock implementation
+    analysis/          Scoring engine, correlation, game script, parlay aggregator
+    supabase/          Browser/server/admin clients, proxy session refresh
+    odds.ts            American odds math
+supabase/
+  migrations/          SQL schema with RLS
+docs/
+  ARCHITECTURE.md      How the pieces fit and how to extend them
+  PLAN.md              Phased implementation plan and status
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) before adding a data provider,
+a scoring factor or a correlation rule.

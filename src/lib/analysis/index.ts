@@ -1,0 +1,10 @@
+export { analyzeParlay, analyzeParlayFromContexts, structureLabel } from "./parlay/analyzeParlay";
+export { scorePick, calibrate } from "./scoring/engine";
+export { projectPick } from "./scoring/projection";
+export { defaultFactors } from "./scoring/factors";
+export type { ScoringFactor } from "./scoring/types";
+export { computeCohesion, cohesionLabel } from "./correlation/engine";
+export { defaultCorrelationRules } from "./correlation/rules";
+export type { CorrelationRule } from "./correlation/rules";
+export { buildGameScript } from "./gameScript/engine";
+export { buildPickContext, PickContextError } from "./context/buildPickContext";
