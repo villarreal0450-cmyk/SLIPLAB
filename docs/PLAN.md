@@ -11,10 +11,13 @@ Status legend: ✅ done · 🔧 in progress · ⬜ not started
 - Supabase clients, proxy session refresh, initial migration with RLS
 - Home screen with hero, CTAs and upcoming games
 
-## Phase 2 — Games & pick builder ⬜
-- `/games` list and `/games/[id]` detail (teams, kickoff, injuries, analysis availability)
-- Manual pick builder: sport → game → player → market → direction → line → odds
-- Parlay draft state (client store, persisted locally for guests)
+## Phase 2 — Games & pick builder ✅
+- `/games` list and `/games/[gameId]` builder: matchup header, injury report, players with their markets
+- Pick composer: over/under or yes/no, line stepper, alternate-line chips, comparison to the market line, optional odds (auto-filled only when the market lists that line)
+- Draft parlay store (`src/lib/parlay`): pure reducer + localStorage persistence for guests, cross-tab sync, 12-leg cap
+- Parlay dock: compact bar above the tab bar on mobile, floating card on desktop; full slip sheet with remove, clear and "Analyze parlay"
+- `/build` entry flow; kickoff times render in the viewer's timezone
+- `/analyze` is a placeholder until Phase 3
 
 ## Phase 3 — Parlay analysis UI ⬜
 - `/analyze` hero screen: ParlayScore ring, cohesion, risk, legs, combined odds

@@ -20,6 +20,18 @@ export type Pick = {
   odds?: number;
   /** True when the user chose an alternate (non-main) line. */
   isAlternate?: boolean;
+  /**
+   * Denormalized display info captured when the pick is created, so slips and
+   * saved bets render without another lookup. Never used for analysis.
+   */
+  meta?: PickMeta;
+};
+
+export type PickMeta = {
+  teamAbbr: string;
+  opponentAbbr: string;
+  position: string;
+  teamColor: string;
 };
 
 /** A draft parlay — the thing being analyzed. */

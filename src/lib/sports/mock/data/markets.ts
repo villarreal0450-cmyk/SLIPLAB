@@ -33,14 +33,23 @@ const yesNo = (gameId: string, playerId: string, yesOdds: number, noOdds: number
   updatedAt,
 });
 
+/** Convert a probability (including the book's margin) to American odds. */
+const toAmerican = (p: number) => (p >= 0.5 ? -Math.round((100 * p) / (1 - p)) : Math.round((100 * (1 - p)) / p));
+
+/**
+ * Alternate ladder around a main line. Each step moves the over's implied
+ * probability by ~6.5 points, with a ~4.5% margin on each side. Rough but
+ * shaped like a real ladder; it is demo data, not a market feed.
+ */
 const yardAlts = (center: number, step: number, count = 3) =>
   Array.from({ length: count * 2 + 1 }, (_, i) => {
-    const offset = (i - count) * step;
-    const line = center + offset;
-    // Cheaper lines pay less; harder lines pay more.
-    const overOdds = offset < 0 ? -112 - Math.abs(offset) * 11 : -112 + offset * 12;
-    const underOdds = offset < 0 ? -108 + Math.abs(offset) * 10 : -108 - offset * 11;
-    return { line, overOdds: Math.round(overOdds), underOdds: Math.round(underOdds) };
+    const k = i - count;
+    const pOver = Math.min(0.95, Math.max(0.05, 0.525 - k * 0.065));
+    return {
+      line: center + k * step,
+      overOdds: toAmerican(Math.min(0.96, pOver + 0.0225)),
+      underOdds: toAmerican(Math.min(0.96, 1 - pOver + 0.0225)),
+    };
   });
 
 export const marketLines: MarketLine[] = [

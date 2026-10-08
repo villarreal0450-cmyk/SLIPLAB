@@ -6,9 +6,9 @@ import { cn } from "cn";
 import { EmptyState } from "@/components/feedback/EmptyState";
 import type { SportKey } from "@/lib/types";
 import { GameCard } from "./GameCard";
-import type { UpcomingGamesData } from "./UpcomingGames";
+import type { SlateData } from "@/lib/sports/queries";
 
-export function UpcomingGamesClient({ data }: { data: UpcomingGamesData }) {
+export function UpcomingGamesClient({ data }: { data: SlateData }) {
   const [sport, setSport] = useState<SportKey>(data.sports[0]?.key ?? "nfl");
   const games = data.games.filter((g) => g.sport === sport);
 
@@ -50,7 +50,7 @@ export function UpcomingGamesClient({ data }: { data: UpcomingGamesData }) {
             if (!home || !away) return null;
             return (
               <li key={game.id} className="animate-fade-up">
-                <GameCard game={game} home={home} away={away} />
+                <GameCard game={game} home={home} away={away} href={`/games/${game.id}`} />
               </li>
             );
           })}

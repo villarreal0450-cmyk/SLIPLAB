@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ChevronRight } from "lucide-react";
 import type { Game, Team } from "@/lib/types";
+import { Kickoff } from "./Kickoff";
 import { TeamMark } from "./TeamMark";
 
 type GameCardProps = {
@@ -9,15 +10,6 @@ type GameCardProps = {
   away: Team;
   href?: string;
 };
-
-export function formatKickoff(iso: string, now = new Date()): string {
-  const date = new Date(iso);
-  const sameDay = date.toDateString() === now.toDateString();
-  const time = date.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
-  if (sameDay) return `Today · ${time}`;
-  const day = date.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
-  return `${day} · ${time}`;
-}
 
 export function GameCard({ game, home, away, href }: GameCardProps) {
   const content = (
@@ -30,7 +22,9 @@ export function GameCard({ game, home, away, href }: GameCardProps) {
         <p className="truncate font-semibold tracking-tight">
           {away.abbreviation} <span className="text-muted-foreground">@</span> {home.abbreviation}
         </p>
-        <p className="text-xs text-muted-foreground">{formatKickoff(game.startsAt)}</p>
+        <p className="text-xs text-muted-foreground">
+          <Kickoff iso={game.startsAt} />
+        </p>
       </div>
       {href && <ChevronRight className="size-4 text-muted-foreground" aria-hidden="true" />}
     </>
