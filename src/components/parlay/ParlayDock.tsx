@@ -12,7 +12,7 @@ import { useParlayDraft } from "@/lib/parlay/store";
 import { SlipLegRow } from "./SlipLegRow";
 
 /** Routes that show the slip themselves, so the dock would be redundant. */
-const HIDDEN_ON = ["/analyze"];
+const HIDDEN_ON = ["/analyze", "/analyst"];
 
 /**
  * Persistent access to the draft parlay while browsing. A compact bar above

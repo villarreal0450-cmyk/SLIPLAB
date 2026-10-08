@@ -57,8 +57,13 @@ Status legend: ✅ done · 🔧 in progress · ⬜ not started
 - Device-data views render the server skeleton until hydrated (no hydration mismatches)
 - **To finish:** add Supabase keys to `.env.local`, apply both migrations, enable Google in Supabase Auth, then test sign-in and sync end to end
 
-## Phase 7 — Analyst chat ⬜
-- Structured context (PickContext + ParlayAnalysis) → Claude; suggested prompts; thread persistence
+## Phase 7 — Analyst chat ✅ (rule-based live; Claude ready, needs a key)
+- `/analyst`: chat about the current slip with suggested prompts, streaming replies, stop, retry; conversation kept per slip in sessionStorage
+- Briefing (`src/lib/analyst/briefing.ts`): one engine run collects analysis, rebuilds, replacement options and best-three, so answers match the screens
+- Rule-based analyst (`rules.ts`): answers every suggested prompt plus per-player questions in the analyst's voice, using only engine numbers; says plainly what it can't answer; flags demo data
+- Claude analyst (`claude.ts`): `claude-opus-5-5`, streaming, effort `medium`, server-side refusal fallback (`fallbacks: "default"`), cached persona prompt + structured slip JSON; never invents stats, never "locks"
+- `/api/analyst` picks Claude when `ANTHROPIC_API_KEY` is set, otherwise the rule-based analyst; per-IP rate limit on the AI path
+- **To finish:** add `ANTHROPIC_API_KEY` to `.env.local` and try the chat; persist threads to Supabase once accounts are live
 
 ## Phase 8 — Betslip scanning ⬜
 - `BetSlipParser` interface, vision adapter (Claude), mocked adapter, editable review UI
@@ -71,6 +76,6 @@ Status legend: ✅ done · 🔧 in progress · ⬜ not started
 
 ## Open decisions (need input)
 1. Supabase project URL + publishable key + service role key (blocks Phase 6+).
-2. Anthropic API key for the analyst chat and betslip vision (Phase 7–8).
+2. Anthropic API key — the chat works without it (rule-based); with it, Claude answers free-form questions and betslip scanning becomes possible (Phase 8).
 3. Preferred sports data vendor for Phase 10 (affects which markets we can support).
 4. Product name — `SlipLab` is a placeholder in `src/config/brand.ts`.

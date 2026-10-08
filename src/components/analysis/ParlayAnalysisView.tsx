@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { BookmarkPlus, Pencil, Sparkles, Ticket } from "lucide-react";
+import { BookmarkPlus, MessageSquareText, Pencil, Sparkles, Ticket } from "lucide-react";
 import { useEffect, useState } from "react";
 import { MockDataBadge } from "@/components/data/MockDataBadge";
 import { EmptyState } from "@/components/feedback/EmptyState";
@@ -219,6 +219,12 @@ function AnalysisFooter({ isMock, onSave }: { isMock: boolean; onSave: () => voi
           </Link>
         </Button>
       </div>
+      <Button asChild variant="ghost" className="h-11 rounded-2xl text-muted-foreground">
+        <Link href="/analyst">
+          <MessageSquareText data-icon="inline-start" />
+          Ask the analyst about this slip
+        </Link>
+      </Button>
       <div className="flex flex-wrap items-center gap-2 text-xs leading-relaxed text-muted-foreground">
         <MockDataBadge source={{ provider: "", isMock, asOf: "" }} />
         <span>Scores reflect analyst confidence in each pick&apos;s quality, not a chance of winning.</span>

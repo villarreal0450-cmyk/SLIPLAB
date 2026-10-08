@@ -23,9 +23,12 @@ cp .env.example .env.local   # fill in Supabase keys when you have them
 npm run dev
 ```
 
-Without Supabase keys the app runs in demo mode: everything that doesn't need
-an account works, and all sports data comes from the mock provider (labelled
-"Demo data" in the UI).
+Without any keys the app runs fully in demo mode:
+
+- Sports data comes from the mock provider (labelled "Demo data" in the UI).
+- Bets are saved in the browser. Add Supabase keys to sync them to an account.
+- The analyst chat uses the rule-based analyst. Add `ANTHROPIC_API_KEY` to have
+  Claude (`claude-opus-5-5`) answer, grounded in the same analysis data.
 
 ## Scripts
 
