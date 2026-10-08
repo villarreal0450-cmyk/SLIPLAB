@@ -1,14 +1,14 @@
-import { Camera } from "lucide-react";
-import { EmptyState } from "@/components/feedback/EmptyState";
 import { PageHeader } from "@/components/layout/PageHeader";
+import { ScanView } from "@/components/scan/ScanView";
+import { scanAvailable } from "@/lib/scan/service";
 
 export const metadata = { title: "Scan betslip" };
 
-export default function Page() {
+export default function ScanPage() {
   return (
     <>
-      <PageHeader title="Scan betslip" />
-      <EmptyState icon={<Camera />} title="Scan betslip is on the way" description="Upload a sportsbook screenshot and we will detect the picks for you to review before analysis." />
+      <PageHeader title="Scan your betslip" description="Upload a screenshot, check what was read, then analyze it." backHref="/" />
+      <ScanView visionEnabled={scanAvailable()} />
     </>
   );
 }

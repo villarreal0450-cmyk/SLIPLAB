@@ -65,8 +65,14 @@ Status legend: ✅ done · 🔧 in progress · ⬜ not started
 - `/api/analyst` picks Claude when `ANTHROPIC_API_KEY` is set, otherwise the rule-based analyst; per-IP rate limit on the AI path
 - **To finish:** add `ANTHROPIC_API_KEY` to `.env.local` and try the chat; persist threads to Supabase once accounts are live
 
-## Phase 8 — Betslip scanning ⬜
-- `BetSlipParser` interface, vision adapter (Claude), mocked adapter, editable review UI
+## Phase 8 — Betslip scanning ✅ (review flow live; vision needs a key)
+- Layers kept separate, as specified: UI (`src/components/scan`) → parser interface `BetSlipParser` (`src/lib/scan/types.ts`) → normalization (`src/lib/scan/normalize.ts`)
+- Vision parser: `claude-opus-5-5` with structured outputs (`betaZodOutputFormat`) and the server-side refusal fallback; copies only what's printed, nulls the rest
+- Sample parser: the brief's DAL @ TB slip, labelled as a sample everywhere; uploads without a key are refused with a clear message (never fake OCR)
+- Normalization: player matching (exact, then unique last name, flagged), market synonyms with a guard against look-alike markets (longest reception, first TD, 1st half…), direction/line/odds handling where every inference is listed as an issue and the leg drops to "Check this"
+- `/scan`: drag-and-drop upload, scanning animation, editable review cards (player, prop, side, line, odds, include), "Add N picks and analyze"
+- `/api/scan`: validates type/size, rate-limits vision calls
+- **To finish:** add `ANTHROPIC_API_KEY`, then test with real screenshots from a few books and tune the synonym list
 
 ## Phase 9 — Insights, bankroll, autopsy ⬜
 - Insights dashboard, bankroll exposure warnings, process review categories
