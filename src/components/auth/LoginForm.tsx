@@ -3,11 +3,12 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { MailCheck, PlugZap } from "lucide-react";
-import { useId, useState } from "react";
+import { useEffect, useId, useState } from "react";
 import { EmptyState } from "@/components/feedback/EmptyState";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth/AuthProvider";
 import { createClient } from "@/lib/supabase/client";
+import { getSupabasePublicEnv } from "@/lib/supabase/env";
 
 /**
  * Email magic link + Google. Accounts are optional: everything works as a
@@ -20,6 +21,21 @@ export function LoginForm({ errorCode }: { errorCode: string | null }) {
   const [email, setEmail] = useState("");
   const [state, setState] = useState<"idle" | "sending" | "sent">("idle");
   const [error, setError] = useState<string | null>(errorCode ? "That sign-in link didn't work. Request a new one." : null);
+  const [googleEnabled, setGoogleEnabled] = useState(false);
+
+  // Only offer providers that are switched on in the Supabase project.
+  useEffect(() => {
+    const env = getSupabasePublicEnv();
+    if (!env) return;
+    let active = true;
+    fetch(`${env.url}/auth/v1/settings`, { headers: { apikey: env.key } })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((settings: { external?: { google?: boolean } } | null) => active && setGoogleEnabled(Boolean(settings?.external?.google)))
+      .catch(() => {});
+    return () => {
+      active = false;
+    };
+  }, []);
 
   if (!configured) {
     return (
@@ -103,14 +119,18 @@ export function LoginForm({ errorCode }: { errorCode: string | null }) {
           {state === "sending" ? "Sending…" : "Email me a sign-in link"}
         </Button>
       </form>
-      <div className="flex items-center gap-3 text-xs text-muted-foreground">
-        <span className="h-px flex-1 bg-border" />
-        or
-        <span className="h-px flex-1 bg-border" />
-      </div>
-      <Button variant="secondary" onClick={google} className="h-12 rounded-2xl text-base">
-        Continue with Google
-      </Button>
+      {googleEnabled && (
+        <>
+          <div className="flex items-center gap-3 text-xs text-muted-foreground">
+            <span className="h-px flex-1 bg-border" />
+            or
+            <span className="h-px flex-1 bg-border" />
+          </div>
+          <Button variant="secondary" onClick={google} className="h-12 rounded-2xl text-base">
+            Continue with Google
+          </Button>
+        </>
+      )}
       {error && (
         <p role="alert" className="text-sm text-negative">
           {error}
