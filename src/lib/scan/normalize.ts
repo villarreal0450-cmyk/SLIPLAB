@@ -76,8 +76,25 @@ const clean = (name: string) =>
     .replace(/\s+/g, " ")
     .trim();
 
-export function matchPlayer(name: string | null, players: CatalogPlayer[]): { player: CatalogPlayer; exact: boolean } | null {
+const TEAM_ALIASES: Record<string, string> = { WAS: "WSH", JAC: "JAX", LA: "LAR", ARZ: "ARI", NWE: "NE", KAN: "KC", SFO: "SF", GNB: "GB", NOR: "NO", TAM: "TB" };
+
+/**
+ * Match a printed name to a roster player. When the slip shows the team, the
+ * search is narrowed to that roster first: across a full league, "J. Williams"
+ * or "J. Daniels" alone is ambiguous.
+ */
+export function matchPlayer(name: string | null, players: CatalogPlayer[], team?: string | null): { player: CatalogPlayer; exact: boolean } | null {
   if (!name) return null;
+  const abbr = team ? (TEAM_ALIASES[team.trim().toUpperCase()] ?? team.trim().toUpperCase()) : null;
+  const onTeam = abbr ? players.filter((p) => p.teamAbbr.toUpperCase() === abbr) : [];
+  if (onTeam.length) {
+    const found = matchByName(name, onTeam);
+    if (found) return found;
+  }
+  return matchByName(name, players);
+}
+
+function matchByName(name: string, players: CatalogPlayer[]): { player: CatalogPlayer; exact: boolean } | null {
   const target = clean(name);
   const exact = players.find((p) => clean(p.name) === target);
   if (exact) return { player: exact, exact: true };
@@ -172,7 +189,7 @@ export function normalizeSlip(slip: ParsedSlip, catalog: CatalogGame[], newId: (
 
 function normalizeLeg(raw: ParsedLeg, players: CatalogPlayer[], pricedGames: Set<string>, id: string): NormalizedLeg {
   const issues: string[] = [];
-  const found = matchPlayer(raw.player, players);
+  const found = matchPlayer(raw.player, players, raw.team);
   if (!found) {
     return {
       id,

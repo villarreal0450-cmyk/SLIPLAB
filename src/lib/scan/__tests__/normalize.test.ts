@@ -1,6 +1,6 @@
 import { beforeAll, describe, expect, it } from "vitest";
 import { MockSportsDataProvider } from "@/lib/sports/mock/mockProvider";
-import { buildCatalog, matchMarket, normalizeSlip } from "../normalize";
+import { buildCatalog, matchMarket, matchPlayer, normalizeSlip } from "../normalize";
 import { SAMPLE_SLIP } from "../sample";
 import type { CatalogGame, ParsedSlip } from "../types";
 
@@ -54,6 +54,22 @@ describe("normalizeSlip", () => {
     expect(unknown.status).toBe("unmatched");
     expect(oddMarket.status).toBe("review");
     expect(oddMarket.issues[0]).toMatch(/Didn't recognize the prop/);
+  });
+});
+
+describe("team-aware player matching", () => {
+  const player = (id: string, name: string, teamAbbr: string) => ({ id, name, teamAbbr, position: "WR", teamId: "", opponentTeamId: "", opponentAbbr: "", teamColor: "#000", gameId: "g", markets: [] });
+  const league = [player("a", "Javonte Williams", "DAL"), player("b", "Josh Williams", "TB"), player("c", "Jalon Daniels", "TB"), player("d", "Jayden Daniels", "WSH")];
+
+  it("uses the printed team to resolve ambiguous initials", () => {
+    expect(matchPlayer("J. Williams", league, "DAL")?.player.id).toBe("a");
+    expect(matchPlayer("J. Williams", league, "TB")?.player.id).toBe("b");
+    expect(matchPlayer("J. Daniels", league, "TB")?.player.id).toBe("c");
+    expect(matchPlayer("J. Daniels", league, "WAS")?.player.id).toBe("d");
+  });
+
+  it("refuses to guess when the name is ambiguous and no team is shown", () => {
+    expect(matchPlayer("J. Daniels", league, null)).toBeNull();
   });
 });
 
