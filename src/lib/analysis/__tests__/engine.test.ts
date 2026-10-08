@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { MockSportsDataProvider } from "@/lib/sports/mock/mockProvider";
 import { analyzeParlay, buildPickContext, computeCohesion, scorePick } from "..";
+import { applyLineCushion } from "../scoring/engine";
 import { dakPassing, demoParlay, javonteTd, lambReceiving, pickensReceiving } from "./fixtures";
 
 const provider = new MockSportsDataProvider();
@@ -55,6 +56,39 @@ describe("scorePick", () => {
     const ctx = await buildPickContext({ ...dakPassing, id: "x", playerId: "spencer-rattler", teamId: "nfl-no", opponentTeamId: "nfl-atl", gameId: "nfl-2026-w5-atl-no" }, provider);
     const result = scorePick(ctx);
     expect(result.missingData.length).toBeGreaterThan(0);
+  });
+});
+
+describe("line cushion", () => {
+  it("grades a near-certain line like 0.5 passing yards as a 10", async () => {
+    const ctx = await buildPickContext({ ...dakPassing, id: "easy", line: 0.5, odds: undefined }, provider);
+    const result = scorePick(ctx);
+    expect(result.score).toBe(10);
+    expect(result.tier).toBe("strong");
+    expect(result.summary).toMatch(/huge cushion/);
+    expect(result.bearCase[0]).toMatch(/pays very little/);
+  });
+
+  it("lifts an easy line above the market read and sinks a stretched one", async () => {
+    const [market, easy, stretched] = await Promise.all(
+      [244, 150.5, 420.5].map((line) => buildPickContext({ ...dakPassing, id: `l${line}`, line }, provider).then(scorePick)),
+    );
+    expect(easy.score).toBeGreaterThan(market.score);
+    expect(easy.score).toBeGreaterThanOrEqual(9);
+    expect(stretched.score).toBeLessThan(5);
+    expect(stretched.bearCase[0]).toMatch(/needs one of/);
+  });
+
+  it("leaves lines near the projection on the factor grade", () => {
+    expect(applyLineCushion(7.8, 0.6)).toEqual({ score: 7.8, shift: null });
+    expect(applyLineCushion(7.8, 0.4)).toEqual({ score: 7.8, shift: null });
+    expect(applyLineCushion(7.8, null)).toEqual({ score: 7.8, shift: null });
+  });
+
+  it("does not lift a near-certain line for a questionable or doubtful player", () => {
+    expect(applyLineCushion(8.9, 0.9999, 0.85).score).toBe(8.9);
+    expect(applyLineCushion(8.9, 0.9999, 0.4).score).toBe(8.9);
+    expect(applyLineCushion(8.9, 0.9999, 1).score).toBe(10);
   });
 });
 

@@ -86,3 +86,13 @@ describe("buildLegAlternatives", () => {
     expect(scores).toEqual([...scores].sort((a, b) => b - a));
   });
 });
+
+describe("picks with no sportsbook line", () => {
+  it("still builds suggestions for a strong pick the market doesn't quote", async () => {
+    const pick = { ...demoParlay.picks[0], id: "no-market", line: 0.5, odds: undefined };
+    const ctx = { ...(await buildPickContext(pick, provider)), marketLine: null };
+    const analysis = analyzeParlayFromContexts({ id: "nm", picks: [pick] }, [ctx]);
+    expect(analysis.picks[0].score).toBeGreaterThanOrEqual(7.5);
+    expect(() => buildSuggestions({ picks: [pick], contexts: [ctx], current: analysis, candidates: [] })).not.toThrow();
+  });
+});

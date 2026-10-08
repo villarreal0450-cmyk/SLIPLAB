@@ -38,6 +38,12 @@ export function toPromptContext(b: AnalystBriefing) {
         score_out_of_10: pa?.score ?? null,
         verdict: pa?.verdict ?? null,
         projection: pa?.projection ? { value: pa.projection.value, unit: def.unit } : null,
+        line_vs_projection:
+          pa?.lineShift === "cushion"
+            ? "huge cushion: the line is far easier than the projection"
+            : pa?.lineShift === "stretch"
+              ? "big stretch: the line is far harder than the projection"
+              : "close to the projection",
         recent_games: ctx?.recentGames.map((g) => g.stats[def.statKey] ?? null) ?? [],
         season_average: ctx?.seasonStats?.averages[def.statKey] ?? null,
         factors: pa?.factors.map((f) => ({ factor: f.label, effect: f.impact, detail: f.explanation })) ?? [],

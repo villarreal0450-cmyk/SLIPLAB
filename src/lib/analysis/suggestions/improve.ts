@@ -150,7 +150,7 @@ function aggressive(picks: Pick[], ws: Workspace, a: (id: string) => PickAnalysi
 
     if (pa.score >= 7.5 && p.line !== null && pa.projection) {
       const proj = pa.projection.value;
-      const currentPrice = p.odds ?? marketOddsFor(ctx.marketLine!, p.direction, p.line) ?? null;
+      const currentPrice = p.odds ?? (ctx.marketLine ? marketOddsFor(ctx.marketLine, p.direction, p.line) : undefined) ?? null;
       // Up to two rungs harder, only where the projection still clears with a 4% margin
       // and the price is genuinely better than what the user has now.
       const rung = harderRungs(ctx, p)

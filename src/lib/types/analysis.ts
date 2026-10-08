@@ -88,6 +88,11 @@ export type PickAnalysis = {
   projection: Projection | null;
   /** True if any required data was unavailable. The explanation layer must disclose this. */
   missingData: string[];
+  /**
+   * Set when the line sits far from the projection: "cushion" (very likely to
+   * clear, pays little) or "stretch" (needs a ceiling game).
+   */
+  lineShift?: "cushion" | "stretch";
 };
 
 /* ---------- Correlation ---------- */
