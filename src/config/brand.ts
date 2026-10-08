@@ -6,6 +6,8 @@ export const brand = {
   name: "SlipLab",
   shortName: "SlipLab",
   tagline: "A smarter way to bet.",
+  /** Short line from the logo lockup. */
+  slogan: "Analyze the slip.",
   subtitle: "Analyze. Improve. Bet with more confidence.",
   description:
     "An AI sports analyst that reviews your picks and parlays before you place them.",
