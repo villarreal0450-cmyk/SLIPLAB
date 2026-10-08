@@ -1,6 +1,7 @@
 "use client";
 
-import { ChevronDown, Info, ThumbsDown, ThumbsUp, TrendingDown, TrendingUp } from "lucide-react";
+import Link from "next/link";
+import { ChevronDown, ChevronRight, Info, ThumbsDown, ThumbsUp, TrendingDown, TrendingUp } from "lucide-react";
 import { useId } from "react";
 import { cn } from "cn";
 import { PlayerAvatar } from "@/components/games/PlayerAvatar";
@@ -8,6 +9,7 @@ import { formatScore, labelForTier, toneClasses, toneForTier } from "@/lib/analy
 import { formatOdds } from "@/lib/odds";
 import { formatLine } from "@/lib/parlay/format";
 import { MARKETS, type Pick, type PickAnalysis } from "@/lib/types";
+import { CaseList } from "./CaseList";
 import { FactorRow } from "./FactorRow";
 import { QualityBar } from "./QualityBar";
 
@@ -134,6 +136,14 @@ export function PickCard({ index, pick, analysis, expanded, onToggle, scriptEffe
                 Not enough data for {analysis.missingData.join(", ").toLowerCase()}. Those factors were left out of the score.
               </p>
             )}
+
+            <Link
+              href={`/analyze/${encodeURIComponent(pick.id)}`}
+              className="flex items-center justify-between rounded-2xl bg-surface-sunken px-4 py-3 text-sm font-medium transition-colors hover:bg-surface-elevated"
+            >
+              Full breakdown
+              <ChevronRight className="size-4 text-muted-foreground" aria-hidden="true" />
+            </Link>
           </div>
         </div>
       </div>
@@ -144,24 +154,4 @@ export function PickCard({ index, pick, analysis, expanded, onToggle, scriptEffe
 function projectionTone(pick: Pick, projection: number, line: number) {
   const favorable = pick.direction === "under" ? projection < line : projection >= line;
   return favorable ? "text-positive" : "text-caution";
-}
-
-function CaseList({ title, icon, tone, items, empty }: { title: string; icon: React.ReactNode; tone: string; items: string[]; empty: string }) {
-  return (
-    <div className="rounded-2xl border border-border p-3.5">
-      <h4 className={cn("mb-2 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide", tone)}>
-        {icon}
-        {title}
-      </h4>
-      {items.length === 0 ? (
-        <p className="text-sm text-muted-foreground">{empty}</p>
-      ) : (
-        <ul className="flex flex-col gap-2 text-sm leading-relaxed text-foreground/85">
-          {items.map((item) => (
-            <li key={item}>{item}</li>
-          ))}
-        </ul>
-      )}
-    </div>
-  );
 }

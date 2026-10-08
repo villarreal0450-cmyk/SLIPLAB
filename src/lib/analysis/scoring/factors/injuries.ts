@@ -11,8 +11,6 @@ const STATUS_WEIGHT: Record<Injury["status"], number> = {
   probable: 0.1,
 };
 
-const PASS_MARKETS = new Set<MarketKey>(["passing_yards", "passing_tds", "completions", "receiving_yards", "receptions"]);
-
 /** Opponent positions whose absence helps a market. */
 function defendersFor(market: MarketKey): Position[] {
   switch (market) {
@@ -53,7 +51,7 @@ export const injuries: ScoringFactor = {
       const boost = Math.min(0.3, oppOut.reduce((acc, i) => acc + STATUS_WEIGHT[i.status] * 0.12, 0));
       adjustment += boost;
       notes.push(
-        `${ctx.opponent.city}'s ${PASS_MARKETS.has(ctx.pick.market) ? "secondary" : "front seven"} is banged up: ${oppOut.map((i) => `${lastName(i.playerName)} ${i.status}`).join(", ")}.`,
+        `${ctx.opponent.city}'s defense is shorthanded: ${oppOut.map((i) => `${lastName(i.playerName)} (${i.position}) ${i.status}`).join(", ")}.`,
       );
     }
 

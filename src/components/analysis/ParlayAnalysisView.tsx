@@ -3,12 +3,13 @@
 import Link from "next/link";
 import { Pencil, Ticket } from "lucide-react";
 import { useEffect, useState } from "react";
-import { analyzeParlayAction, type AnalyzeResult } from "@/app/(app)/analyze/actions";
 import { MockDataBadge } from "@/components/data/MockDataBadge";
 import { EmptyState } from "@/components/feedback/EmptyState";
 import { ErrorState } from "@/components/feedback/ErrorState";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { fetchParlayAnalysis } from "@/lib/analysis/client";
+import type { AnalyzeResult } from "@/lib/analysis/results";
 import { useHydrated } from "@/lib/hooks/useHydrated";
 import { useParlayDraft } from "@/lib/parlay/store";
 import type { Pick } from "@/lib/types";
@@ -37,19 +38,13 @@ export function ParlayAnalysisView() {
 
   useEffect(() => {
     if (!hydrated || picks.length === 0) return;
-    let cancelled = false;
-    analyzeParlayAction({ picks })
-      .then((result) => {
-        if (!cancelled) setSettled({ forPicks: picks, result });
-      })
+    const controller = new AbortController();
+    fetchParlayAnalysis(picks, controller.signal)
+      .then((result) => setSettled({ forPicks: picks, result }))
       .catch(() => {
-        if (!cancelled) {
-          setSettled({ forPicks: picks, result: { ok: false, error: "Couldn't reach the analyst. Check your connection and try again." } });
-        }
+        // Aborted because the slip changed or the page unmounted; a newer request owns the UI.
       });
-    return () => {
-      cancelled = true;
-    };
+    return () => controller.abort();
   }, [hydrated, picks, attempt]);
 
   if (!hydrated) return <AnalysisSkeleton />;

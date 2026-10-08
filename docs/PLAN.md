@@ -29,8 +29,14 @@ Status legend: ✅ done · 🔧 in progress · ⬜ not started
 - Two-column desktop layout; loading, empty and error states
 - Engine copy fixes: suffix-aware names, no contradictory bear-case items, every pick gets a counterpoint
 
-## Phase 4 — Pick breakdown ⬜
-- `/analyze/[pickId]`: PlayerHeader, tabs, key factors, projection chart, recent games, bull/bear, verdict
+## Phase 4 — Pick breakdown ✅
+- `/analyze/[pickId]`: player header, Analysis / Stats / Matchup / News tabs
+- Verdict ring, ranked key factors with icons, bull/bear, "how it fits your slip" (game script effect + correlations), final verdict
+- Projection distribution chart (bars clearing the user's line in the accent, no percentages) and recent-games column chart against the line; both hover/focus tooltips
+- Stats tab: season vs line vs market tiles, game-log table (accessible companion to the charts)
+- Matchup tab: opponent defense profile with ranks, game environment, injuries; News tab shows injury reports and says plainly that no news feed is connected
+- Analysis moved from Server Actions to Route Handlers (`/api/analysis/parlay`, `/api/analysis/pick`) with a shared server-only service; reads are now parallel and abortable
+- Nav and dock read the pathname behind Suspense so dynamic routes prerender
 
 ## Phase 5 — Improve my parlay ⬜
 - Suggestion engine: safer / balanced / aggressive with per-change reasoning

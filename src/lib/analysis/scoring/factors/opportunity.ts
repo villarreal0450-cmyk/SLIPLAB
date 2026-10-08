@@ -33,7 +33,7 @@ export const opportunity: ScoringFactor = {
       const avgTargets = mean(targets);
       const avgShare = share.length ? mean(share) : null;
       const trend = targets.length >= 4 ? mean(targets.slice(0, 2)) - mean(targets.slice(2)) : 0;
-      const score = clamp((avgTargets - 4) / 8 + trend * 0.03);
+      const score = clamp((avgTargets - 3) / 8 + trend * 0.03); // ~7 targets/game = neutral-plus
       const shareText = avgShare ? ` (${Math.round(avgShare * 100)}% target share)` : "";
       return result(this, score, `Seeing ${avgTargets.toFixed(1)} targets per game${shareText}.`, {
         targets: avgTargets,

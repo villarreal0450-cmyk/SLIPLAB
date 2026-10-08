@@ -39,8 +39,9 @@ export function projectPick(ctx: PickContext): Projection | null {
   }
 
   const buckets = 11;
-  const lo = value - 2.5 * sd;
-  const width = (5 * sd) / buckets;
+  // Stats can't go negative, so the sketched distribution starts at zero at the lowest.
+  const lo = Math.max(0, value - 2.5 * sd);
+  const width = (value + 2.5 * sd - lo) / buckets;
   const distribution = Array.from({ length: buckets }, (_, i) => {
     const start = lo + i * width;
     const end = start + width;

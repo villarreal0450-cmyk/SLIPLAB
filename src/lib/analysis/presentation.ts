@@ -38,3 +38,27 @@ export function labelForScriptConfidence(confidence: number) {
 }
 
 export const formatScore = (score: number) => score.toFixed(1);
+
+/**
+ * The analyst's one-line call on a leg. Uses only numbers already in the
+ * analysis (score tier, line-value evidence) — never invents new ones.
+ */
+export function analystCall(analysis: import("@/lib/types").PickAnalysis): string {
+  const lineFactor = analysis.factors.find((f) => f.key === "line_value");
+  const marketLine = typeof lineFactor?.evidence?.marketLine === "number" ? lineFactor.evidence.marketLine : null;
+  const aggressive = lineFactor?.impact === "negative";
+  switch (analysis.tier) {
+    case "strong":
+      return "Keep it. This is one of the legs the slip is built around.";
+    case "good":
+      return aggressive && marketLine !== null
+        ? `Keep it, but I'd rather buy the line down toward the market's ${marketLine}.`
+        : "Keep it. Solid, just not a lock — nothing is.";
+    case "risky":
+      return aggressive && marketLine !== null
+        ? `Playable, but the line is doing you no favors. Closer to ${marketLine} it gets a lot cleaner.`
+        : "Only keep it if the slip needs this story. This is the kind of leg that sinks parlays.";
+    case "avoid":
+      return "I'd cut it. The data doesn't support the risk.";
+  }
+}

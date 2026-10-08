@@ -44,7 +44,7 @@ export function scorePick(ctx: PickContext, options: ScoreOptions = {}): PickAna
   // surface the weakest one and the sample-size caveat rather than an empty list.
   if (bearCase.length === 0) {
     const weakest = sorted[sorted.length - 1];
-    if (weakest && weakest.score < 0.6 && weakest.key !== "market_volatility") bearCase.push(weakest.explanation);
+    if (weakest && weakest.score < 0.5 && weakest.key !== "market_volatility") bearCase.push(weakest.explanation);
     const games = ctx.recentGames.length;
     if (games > 0 && games < 8) {
       bearCase.push(`Only ${games} games of data this season — a small sample that can overstate a hot start.`);

@@ -15,7 +15,7 @@ describe("scorePick", () => {
     expect(result.bullCase.length).toBeGreaterThan(0);
     // Even a strong pick gets a counterpoint.
     expect(result.bearCase.length).toBeGreaterThan(0);
-    expect(result.factors.find((f) => f.key === "injuries")?.explanation).toContain("Winfield out");
+    expect(result.factors.find((f) => f.key === "injuries")?.explanation).toContain("Winfield (S) out");
     expect(result.projection?.value).toBeGreaterThan(244);
   });
 
@@ -33,6 +33,13 @@ describe("scorePick", () => {
     const negatives = result.factors.filter((f) => f.impact === "negative").map((f) => f.explanation);
     expect(result.bearCase).toEqual(expect.arrayContaining(negatives));
     expect(result.bearCase.some((t) => t.includes("decent scoring opportunity"))).toBe(false);
+  });
+
+  it("never sketches negative outcomes", async () => {
+    const ctx = await buildPickContext(pickensReceiving, provider);
+    const projection = scorePick(ctx).projection!;
+    expect(projection.distribution[0].bucketStart).toBeGreaterThanOrEqual(0);
+    expect(projection.distribution.at(-1)!.bucketEnd).toBeGreaterThan(projection.value);
   });
 
   it("scores the anytime TD leg lowest", async () => {

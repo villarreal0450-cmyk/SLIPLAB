@@ -8,3 +8,6 @@ export { defaultCorrelationRules } from "./correlation/rules";
 export type { CorrelationRule } from "./correlation/rules";
 export { buildGameScript } from "./gameScript/engine";
 export { buildPickContext, PickContextError } from "./context/buildPickContext";
+export { buildPickBreakdown } from "./breakdown";
+export type { PickBreakdown, RecentGame, DefenseProfile } from "./breakdown";
+export type { AnalyzeResult, BreakdownResult } from "./results";
