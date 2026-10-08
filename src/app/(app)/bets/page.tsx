@@ -1,14 +1,14 @@
-import { Ticket } from "lucide-react";
-import { EmptyState } from "@/components/feedback/EmptyState";
+import { BetsView } from "@/components/bets/BetsView";
+import { StorageBadge } from "@/components/bets/StorageBadge";
 import { PageHeader } from "@/components/layout/PageHeader";
 
 export const metadata = { title: "My Bets" };
 
-export default function Page() {
+export default function BetsPage() {
   return (
     <>
-      <PageHeader title="My Bets" />
-      <EmptyState icon={<Ticket />} title="My Bets is on the way" description="Saved parlays, results and post-game reviews will live here." />
+      <PageHeader title="My Bets" description="What you saved, how it settled, and what the analyst said beforehand." actions={<StorageBadge />} />
+      <BetsView />
     </>
   );
 }

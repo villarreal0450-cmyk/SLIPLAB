@@ -73,6 +73,8 @@ export type Database = {
           analysis_score: number | null;
           process_review: "good_process_bad_result" | "bad_process" | "good_read" | "high_variance_result" | null;
           sort_order: number;
+          /** Full selection snapshot (see migration 20261008000000). */
+          selection: Json | null;
           created_at: string;
         };
         Insert: Partial<Database["public"]["Tables"]["bet_legs"]["Row"]> & {

@@ -1,10 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { Pencil, Sparkles, Ticket } from "lucide-react";
+import { BookmarkPlus, Pencil, Sparkles, Ticket } from "lucide-react";
 import { useEffect, useState } from "react";
 import { MockDataBadge } from "@/components/data/MockDataBadge";
 import { EmptyState } from "@/components/feedback/EmptyState";
+import { SaveBetSheet } from "@/components/bets/SaveBetSheet";
 import { ErrorState } from "@/components/feedback/ErrorState";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -37,6 +38,7 @@ export function ParlayAnalysisView() {
   const [tab, setTab] = useState<Tab>("picks");
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [alternatives, setAlternatives] = useState<AlternativesRequest | null>(null);
+  const [saveOpen, setSaveOpen] = useState(false);
 
   useEffect(() => {
     if (!hydrated || picks.length === 0) return;
@@ -136,7 +138,7 @@ export function ParlayAnalysisView() {
           />
         )}
         <div className="hidden flex-col gap-3 lg:flex">
-          <AnalysisFooter isMock={analysis.dataSource.isMock} />
+          <AnalysisFooter isMock={analysis.dataSource.isMock} onSave={() => setSaveOpen(true)} />
         </div>
       </div>
 
@@ -187,15 +189,16 @@ export function ParlayAnalysisView() {
       </Tabs>
 
       <div className="flex flex-col gap-3 lg:hidden">
-        <AnalysisFooter isMock={analysis.dataSource.isMock} />
+        <AnalysisFooter isMock={analysis.dataSource.isMock} onSave={() => setSaveOpen(true)} />
       </div>
 
       <LegAlternativesSheet request={alternatives} onClose={() => setAlternatives(null)} />
+      {!isStale && <SaveBetSheet key={analysis.analyzedAt} open={saveOpen} onOpenChange={setSaveOpen} picks={rows.map((r) => r.pick)} analysis={analysis} />}
     </div>
   );
 }
 
-function AnalysisFooter({ isMock }: { isMock: boolean }) {
+function AnalysisFooter({ isMock, onSave }: { isMock: boolean; onSave: () => void }) {
   return (
     <>
       <Button asChild className="h-12 rounded-2xl bg-foreground text-base font-semibold text-background hover:bg-foreground/90">
@@ -204,12 +207,18 @@ function AnalysisFooter({ isMock }: { isMock: boolean }) {
           Improve my parlay
         </Link>
       </Button>
-      <Button asChild variant="secondary" className="h-12 rounded-2xl text-base">
-        <Link href="/build">
-          <Pencil data-icon="inline-start" />
-          Edit picks
-        </Link>
-      </Button>
+      <div className="grid grid-cols-2 gap-2">
+        <Button variant="secondary" className="h-12 rounded-2xl text-base" onClick={onSave}>
+          <BookmarkPlus data-icon="inline-start" />
+          Save bet
+        </Button>
+        <Button asChild variant="secondary" className="h-12 rounded-2xl text-base">
+          <Link href="/build">
+            <Pencil data-icon="inline-start" />
+            Edit picks
+          </Link>
+        </Button>
+      </div>
       <div className="flex flex-wrap items-center gap-2 text-xs leading-relaxed text-muted-foreground">
         <MockDataBadge source={{ provider: "", isMock, asOf: "" }} />
         <span>Scores reflect analyst confidence in each pick&apos;s quality, not a chance of winning.</span>

@@ -47,9 +47,15 @@ Status legend: ✅ done · 🔧 in progress · ⬜ not started
 - Weakest leg is only flagged when it grades below Good
 - API: `/api/analysis/improve`, `/api/analysis/alternatives`
 
-## Phase 6 — Auth & My Bets ⬜
-- Supabase Auth (email, Google), guest → account upgrade
-- Save analyzed parlays; statuses; manual result entry
+## Phase 6 — Save bets, My Bets, auth 🔧 (works on device; account sync awaits credentials)
+- Saved-bet model (`src/lib/bets/model.ts`): payout math, status derived from legs (any miss loses, voids drop out), settlement time, analysis snapshot with the weakest leg mapped to its saved leg
+- `BetRepository` with two implementations: device (localStorage, active now) and account (Supabase, written against the migrations but **not yet run against a live project**)
+- Save bet sheet on the analysis screen (placed vs draft, stake, odds, sportsbook, notes, return preview); slip clears on the bet page after saving
+- `/bets` with Open / Settled / All filters and record; `/bets/[betId]` with manual leg results, final stat entry, details editor, analyst snapshot, Analyze again and Delete
+- Auth: email magic link + Google (`/login`, `/auth/callback` with same-site `next`), optional by design; Profile shows account state, moves device bets into the account after sign-in, and responsible-gambling resources
+- Migration `20261008000000_bet_leg_selection.sql` (additive) stores each leg's full selection for re-analysis
+- Device-data views render the server skeleton until hydrated (no hydration mismatches)
+- **To finish:** add Supabase keys to `.env.local`, apply both migrations, enable Google in Supabase Auth, then test sign-in and sync end to end
 
 ## Phase 7 — Analyst chat ⬜
 - Structured context (PickContext + ParlayAnalysis) → Claude; suggested prompts; thread persistence
