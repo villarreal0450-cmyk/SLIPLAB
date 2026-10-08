@@ -155,18 +155,48 @@ export type SuggestionChangeType = "keep" | "replace" | "adjust_line" | "remove"
 
 export type SuggestionChange = {
   type: SuggestionChangeType;
-  pickId?: string;
+  /** The leg in the current slip this change refers to (absent for "add"). */
   before?: Pick;
+  /** The resulting leg (absent for "remove"). */
   after?: Pick;
   reason: string;
+  /** The leg stays in the slip but is a known weak spot. */
+  warning?: boolean;
+};
+
+/** Headline numbers for a slip, used to compare a suggestion with the current parlay. */
+export type ProjectedOutcome = {
+  score: number;
+  tier: ScoreTier;
+  label: string;
+  cohesion: number;
+  riskLevel: RiskLevel;
+  odds: number | null;
+  legCount: number;
 };
 
 export type ParlaySuggestion = {
   profile: "safer" | "balanced" | "aggressive";
   title: string;
+  tagline: string;
   picks: Pick[];
   changes: SuggestionChange[];
-  projectedScore: number;
-  projectedOdds: number | null;
+  projected: ProjectedOutcome;
   rationale: string;
+  /** Shown with aggressive suggestions: what the user is trading for the payout. */
+  caution: string | null;
+  /** True when the current slip already fits this profile. */
+  unchanged: boolean;
+  recommended: boolean;
+};
+
+export type LegAlternativeKind = "easier_line" | "other_market" | "replacement";
+
+export type LegAlternative = {
+  pick: Pick;
+  kind: LegAlternativeKind;
+  score: number;
+  tier: ScoreTier;
+  reason: string;
+  parlayAfter: ProjectedOutcome;
 };

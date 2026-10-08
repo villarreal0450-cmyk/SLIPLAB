@@ -38,9 +38,14 @@ Status legend: ✅ done · 🔧 in progress · ⬜ not started
 - Analysis moved from Server Actions to Route Handlers (`/api/analysis/parlay`, `/api/analysis/pick`) with a shared server-only service; reads are now parallel and abortable
 - Nav and dock read the pathname behind Suspense so dynamic routes prerender
 
-## Phase 5 — Improve my parlay ⬜
-- Suggestion engine: safer / balanced / aggressive with per-change reasoning
-- Replace-leg recommendations from the same game
+## Phase 5 — Improve my parlay ✅
+- Suggestion engine (`src/lib/analysis/suggestions`): a scoring workspace re-scores any variant of a pick without refetching; candidates are every main-line market in the slip's games; line ladders come only from prices the market lists
+- Safer / Balanced / More aggressive slips, each with per-change reasons (keep, change line, swap, remove, add), projected score/cohesion/risk/odds, and a rationale composed from the actual changes; one is marked recommended
+- Guardrails: no juice beyond -250 on "safer" lines; aggressive step-ups only when the new price beats the user's and the projection clears by 4%; no stacking a second leg on a player already in the slip; weak legs kept for upside are flagged; aggressive carries a variance caution
+- `/analyze/improve` screen with sliding profile switcher, suggestion card and current-slip card; "Use this parlay" replaces the slip
+- Weakest-leg card: Replace (same-game options) and Make safer (easier lines, or steadier markets for TD legs), each scored inside the whole slip; "Use this" swaps the leg in place
+- Weakest leg is only flagged when it grades below Good
+- API: `/api/analysis/improve`, `/api/analysis/alternatives`
 
 ## Phase 6 — Auth & My Bets ⬜
 - Supabase Auth (email, Google), guest → account upgrade

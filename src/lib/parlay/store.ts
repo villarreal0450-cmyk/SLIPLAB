@@ -90,6 +90,8 @@ export function useParlayDraft() {
   const upsertPick = useCallback((pick: Pick) => dispatchDraft({ type: "upsert", pick }), []);
   const removePick = useCallback((pickId: string) => dispatchDraft({ type: "remove", pickId }), []);
   const clear = useCallback(() => dispatchDraft({ type: "clear" }), []);
+  const swapPick = useCallback((pickId: string, pick: Pick) => dispatchDraft({ type: "swap", pickId, pick }), []);
+  const setPicks = useCallback((picks: Pick[]) => dispatchDraft({ type: "set", picks }), []);
 
-  return { draft, picks: draft.picks, upsertPick, removePick, clear };
+  return { draft, picks: draft.picks, upsertPick, removePick, clear, swapPick, setPicks };
 }

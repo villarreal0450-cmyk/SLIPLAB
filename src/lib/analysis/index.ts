@@ -10,4 +10,4 @@ export { buildGameScript } from "./gameScript/engine";
 export { buildPickContext, PickContextError } from "./context/buildPickContext";
 export { buildPickBreakdown } from "./breakdown";
 export type { PickBreakdown, RecentGame, DefenseProfile } from "./breakdown";
-export type { AnalyzeResult, BreakdownResult } from "./results";
+export type { AlternativesResult, AnalyzeResult, BreakdownResult, ImproveResult } from "./results";

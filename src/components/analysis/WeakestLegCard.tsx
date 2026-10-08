@@ -12,9 +12,11 @@ type WeakestLegCardProps = {
   analysis: PickAnalysis;
   onWhy: () => void;
   onRemove: () => void;
+  onReplace: () => void;
+  onMakeSafer: () => void;
 };
 
-export function WeakestLegCard({ weakest, pick, analysis, onWhy, onRemove }: WeakestLegCardProps) {
+export function WeakestLegCard({ weakest, pick, analysis, onWhy, onRemove, onReplace, onMakeSafer }: WeakestLegCardProps) {
   return (
     <section aria-labelledby="weakest-heading" className="rounded-2xl border border-negative/25 bg-negative/[0.06] p-4">
       <h2 id="weakest-heading" className="mb-2 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-negative">
@@ -27,12 +29,18 @@ export function WeakestLegCard({ weakest, pick, analysis, onWhy, onRemove }: Wea
       <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
         {weakest.reason} <span className="tabular">Scores {formatScore(analysis.score)}/10.</span>
       </p>
-      <div className="mt-3 flex gap-2">
+      <div className="mt-3 flex flex-wrap gap-2">
         <Button variant="secondary" size="sm" className="rounded-xl" onClick={onWhy}>
           Why?
         </Button>
+        <Button variant="secondary" size="sm" className="rounded-xl" onClick={onReplace}>
+          Replace
+        </Button>
+        <Button variant="secondary" size="sm" className="rounded-xl" onClick={onMakeSafer}>
+          Make safer
+        </Button>
         <Button variant="ghost" size="sm" className="rounded-xl text-muted-foreground" onClick={onRemove}>
-          Remove this leg
+          Remove
         </Button>
       </div>
     </section>

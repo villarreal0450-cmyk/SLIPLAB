@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Pencil, Ticket } from "lucide-react";
+import { Pencil, Sparkles, Ticket } from "lucide-react";
 import { useEffect, useState } from "react";
 import { MockDataBadge } from "@/components/data/MockDataBadge";
 import { EmptyState } from "@/components/feedback/EmptyState";
@@ -16,6 +16,7 @@ import type { Pick } from "@/lib/types";
 import { AnalysisSkeleton } from "./AnalysisSkeleton";
 import { CohesionPanel } from "./CohesionPanel";
 import { GameScriptCard } from "./GameScriptCard";
+import { LegAlternativesSheet, type AlternativesRequest } from "./LegAlternativesSheet";
 import { ParlayScoreCard } from "./ParlayScoreCard";
 import { PickCard } from "./PickCard";
 import { WeakestLegCard } from "./WeakestLegCard";
@@ -35,6 +36,7 @@ export function ParlayAnalysisView() {
   const [attempt, setAttempt] = useState(0);
   const [tab, setTab] = useState<Tab>("picks");
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [alternatives, setAlternatives] = useState<AlternativesRequest | null>(null);
 
   useEffect(() => {
     if (!hydrated || picks.length === 0) return;
@@ -129,6 +131,8 @@ export function ParlayAnalysisView() {
             analysis={weakestAnalysis}
             onWhy={() => showWhy(weakestPick.id)}
             onRemove={() => removePick(weakestPick.id)}
+            onReplace={() => setAlternatives({ pick: weakestPick, mode: "replace", parlayScore: analysis.score })}
+            onMakeSafer={() => setAlternatives({ pick: weakestPick, mode: "safer", parlayScore: analysis.score })}
           />
         )}
         <div className="hidden flex-col gap-3 lg:flex">
@@ -185,6 +189,8 @@ export function ParlayAnalysisView() {
       <div className="flex flex-col gap-3 lg:hidden">
         <AnalysisFooter isMock={analysis.dataSource.isMock} />
       </div>
+
+      <LegAlternativesSheet request={alternatives} onClose={() => setAlternatives(null)} />
     </div>
   );
 }
@@ -192,6 +198,12 @@ export function ParlayAnalysisView() {
 function AnalysisFooter({ isMock }: { isMock: boolean }) {
   return (
     <>
+      <Button asChild className="h-12 rounded-2xl bg-foreground text-base font-semibold text-background hover:bg-foreground/90">
+        <Link href="/analyze/improve">
+          <Sparkles data-icon="inline-start" />
+          Improve my parlay
+        </Link>
+      </Button>
       <Button asChild variant="secondary" className="h-12 rounded-2xl text-base">
         <Link href="/build">
           <Pencil data-icon="inline-start" />

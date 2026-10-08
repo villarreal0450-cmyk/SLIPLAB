@@ -23,7 +23,11 @@ export type DraftAction =
   | { type: "upsert"; pick: Pick }
   | { type: "remove"; pickId: string }
   | { type: "clear" }
-  | { type: "replace"; draft: ParlayDraft };
+  | { type: "replace"; draft: ParlayDraft }
+  /** Swap one leg for another in place (Replace / Make safer). */
+  | { type: "swap"; pickId: string; pick: Pick }
+  /** Replace the whole slip (Use this parlay). */
+  | { type: "set"; picks: Pick[] };
 
 export type DraftResult = { draft: ParlayDraft; error?: "max_legs" };
 
@@ -47,6 +51,25 @@ export function reduceDraft(state: ParlayDraft, action: DraftAction, now = new D
       return { draft: { ...EMPTY_DRAFT, updatedAt: now } };
     case "replace":
       return { draft: action.draft };
+    case "swap": {
+      const index = state.picks.findIndex((p) => p.id === action.pickId);
+      if (index < 0) return { draft: state };
+      const key = selectionKey(action.pick);
+      // Drop any other leg that is the same selection, then put the new leg where the old one was.
+      const picks = state.picks.filter((p, i) => i === index || selectionKey(p) !== key);
+      picks[picks.findIndex((p) => p.id === action.pickId)] = action.pick;
+      return { draft: { ...state, picks, updatedAt: now } };
+    }
+    case "set": {
+      const seen = new Set<string>();
+      const picks = action.picks.filter((p) => {
+        const key = selectionKey(p);
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      });
+      return { draft: { ...state, picks: picks.slice(0, MAX_LEGS), updatedAt: now } };
+    }
   }
 }
 

@@ -81,6 +81,8 @@ function computeRisk(contexts: PickContext[]): RiskLevel {
 function findWeakestLeg(picks: PickAnalysis[], contexts: PickContext[]): WeakestLeg | null {
   if (picks.length < 2) return null;
   const weakest = [...picks].sort((a, b) => a.score - b.score)[0];
+  // Only call out a weakest leg when it is actually weak; a slip of good legs has none.
+  if (weakest.score >= 7.5) return null;
   const ctx = contexts.find((c) => c.pick.id === weakest.pickId);
   // Market volatility is restated separately below, so look past it for the specific reason.
   const specific = [...weakest.factors].filter((f) => f.key !== "market_volatility").sort((a, b) => a.score - b.score)[0];

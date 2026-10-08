@@ -1,5 +1,6 @@
 import type { Pick } from "@/lib/types";
-import type { AnalyzeResult, BreakdownResult } from "./results";
+import type { AlternativesMode } from "./suggestions/alternatives";
+import type { AlternativesResult, AnalyzeResult, BreakdownResult, ImproveResult } from "./results";
 
 /**
  * Browser-side callers for the analysis API. Analysis is a read, so it goes
@@ -37,5 +38,23 @@ export async function fetchPickBreakdown(pickId: string, picks: Pick[], signal?:
   } catch (error) {
     if (signal?.aborted) throw error;
     return { ok: false, error: NETWORK_ERROR, reason: "failed" };
+  }
+}
+
+export async function fetchSuggestions(picks: Pick[], signal?: AbortSignal): Promise<ImproveResult> {
+  try {
+    return await post<ImproveResult>("/api/analysis/improve", { picks }, signal);
+  } catch (error) {
+    if (signal?.aborted) throw error;
+    return { ok: false, error: NETWORK_ERROR };
+  }
+}
+
+export async function fetchLegAlternatives(pickId: string, mode: AlternativesMode, picks: Pick[], signal?: AbortSignal): Promise<AlternativesResult> {
+  try {
+    return await post<AlternativesResult>("/api/analysis/alternatives", { pickId, mode, picks }, signal);
+  } catch (error) {
+    if (signal?.aborted) throw error;
+    return { ok: false, error: NETWORK_ERROR };
   }
 }

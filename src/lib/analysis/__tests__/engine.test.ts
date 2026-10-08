@@ -58,6 +58,15 @@ describe("scorePick", () => {
   });
 });
 
+describe("weakest leg", () => {
+  it("is not flagged when every leg grades good or better", async () => {
+    const strongOnly = { id: "strong", picks: [dakPassing, { ...lambReceiving, line: 66.5, odds: -210 }] };
+    const analysis = await analyzeParlay(strongOnly, provider);
+    expect(analysis.picks.every((p) => p.score >= 7.5)).toBe(true);
+    expect(analysis.weakestLeg).toBeNull();
+  });
+});
+
 describe("computeCohesion", () => {
   it("rewards a QB + WR stack and notes target competition", async () => {
     const ctxs = await Promise.all([dakPassing, lambReceiving, pickensReceiving].map((p) => buildPickContext(p, provider)));

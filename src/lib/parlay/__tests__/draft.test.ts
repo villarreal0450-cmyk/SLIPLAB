@@ -40,6 +40,23 @@ describe("reduceDraft", () => {
   });
 });
 
+describe("swap and set", () => {
+  it("swaps a leg in place and drops a duplicate selection", () => {
+    let { draft } = reduceDraft(EMPTY_DRAFT, { type: "set", picks: [dakPassing, lambReceiving, javonteTd] }, now);
+    const easierLamb = { ...lambReceiving, id: "lamb-72", line: 72.5 };
+    ({ draft } = reduceDraft(draft, { type: "swap", pickId: lambReceiving.id, pick: easierLamb }, now));
+    expect(draft.picks.map((p) => p.id)).toEqual([dakPassing.id, "lamb-72", javonteTd.id]);
+    // Swapping the TD leg into Dak's passing yards removes the old duplicate Dak leg.
+    ({ draft } = reduceDraft(draft, { type: "swap", pickId: javonteTd.id, pick: { ...dakPassing, id: "dak-2", line: 225 } }, now));
+    expect(draft.picks.map((p) => p.id)).toEqual(["lamb-72", "dak-2"]);
+  });
+
+  it("set replaces the slip and de-duplicates", () => {
+    const { draft } = reduceDraft(EMPTY_DRAFT, { type: "set", picks: [dakPassing, { ...dakPassing, id: "x" }, lambReceiving] }, now);
+    expect(draft.picks.map((p) => p.id)).toEqual([dakPassing.id, lambReceiving.id]);
+  });
+});
+
 describe("parseDraft", () => {
   it("round-trips a valid draft", () => {
     const { draft } = reduceDraft(EMPTY_DRAFT, { type: "upsert", pick: javonteTd }, now);
