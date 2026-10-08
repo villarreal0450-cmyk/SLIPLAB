@@ -47,32 +47,33 @@ Status legend: ✅ done · 🔧 in progress · ⬜ not started
 - Weakest leg is only flagged when it grades below Good
 - API: `/api/analysis/improve`, `/api/analysis/alternatives`
 
-## Phase 6 — Save bets, My Bets, auth 🔧 (works on device; account sync awaits credentials)
+## Phase 6 — Save bets, My Bets, auth ✅
 - Saved-bet model (`src/lib/bets/model.ts`): payout math, status derived from legs (any miss loses, voids drop out), settlement time, analysis snapshot with the weakest leg mapped to its saved leg
-- `BetRepository` with two implementations: device (localStorage, active now) and account (Supabase, written against the migrations but **not yet run against a live project**)
+- `BetRepository` with two implementations: device (localStorage, for guests) and account (Supabase); account sync verified end to end on the live project (2026-10-08)
 - Save bet sheet on the analysis screen (placed vs draft, stake, odds, sportsbook, notes, return preview); slip clears on the bet page after saving
 - `/bets` with Open / Settled / All filters and record; `/bets/[betId]` with manual leg results, final stat entry, details editor, analyst snapshot, Analyze again and Delete
 - Auth: email magic link + Google (`/login`, `/auth/callback` with same-site `next`), optional by design; Profile shows account state, moves device bets into the account after sign-in, and responsible-gambling resources
 - Migration `20261008000000_bet_leg_selection.sql` (additive) stores each leg's full selection for re-analysis
 - Device-data views render the server skeleton until hydrated (no hydration mismatches)
-- **To finish:** add Supabase keys to `.env.local`, apply both migrations, enable Google in Supabase Auth, then test sign-in and sync end to end
+- Supabase connected, both migrations applied, RLS verified (anonymous reads empty, anonymous writes rejected); email magic-link sign-in live. Google sign-in appears automatically once enabled in Supabase
 
-## Phase 7 — Analyst chat ✅ (rule-based live; Claude ready, needs a key)
+## Phase 7 — Analyst chat ✅
 - `/analyst`: chat about the current slip with suggested prompts, streaming replies, stop, retry; conversation kept per slip in sessionStorage
 - Briefing (`src/lib/analyst/briefing.ts`): one engine run collects analysis, rebuilds, replacement options and best-three, so answers match the screens
 - Rule-based analyst (`rules.ts`): answers every suggested prompt plus per-player questions in the analyst's voice, using only engine numbers; says plainly what it can't answer; flags demo data
 - Claude analyst (`claude.ts`): `claude-opus-5-5`, streaming, effort `medium`, server-side refusal fallback (`fallbacks: "default"`), cached persona prompt + structured slip JSON; never invents stats, never "locks"
 - `/api/analyst` picks Claude when `ANTHROPIC_API_KEY` is set, otherwise the rule-based analyst; per-IP rate limit on the AI path
-- **To finish:** add `ANTHROPIC_API_KEY` to `.env.local` and try the chat; persist threads to Supabase once accounts are live
+- Claude analyst verified live (answers in the user's language, grounded in slip data)
+- **Later:** persist chat threads to Supabase
 
-## Phase 8 — Betslip scanning ✅ (review flow live; vision needs a key)
+## Phase 8 — Betslip scanning ✅
 - Layers kept separate, as specified: UI (`src/components/scan`) → parser interface `BetSlipParser` (`src/lib/scan/types.ts`) → normalization (`src/lib/scan/normalize.ts`)
 - Vision parser: `claude-opus-5-5` with structured outputs (`betaZodOutputFormat`) and the server-side refusal fallback; copies only what's printed, nulls the rest
 - Sample parser: the brief's DAL @ TB slip, labelled as a sample everywhere; uploads without a key are refused with a clear message (never fake OCR)
 - Normalization: player matching (exact, then unique last name, flagged), market synonyms with a guard against look-alike markets (longest reception, first TD, 1st half…), direction/line/odds handling where every inference is listed as an issue and the leg drops to "Check this"
 - `/scan`: drag-and-drop upload, scanning animation, editable review cards (player, prop, side, line, odds, include), "Add N picks and analyze"
 - `/api/scan`: validates type/size, rate-limits vision calls
-- **To finish:** add `ANTHROPIC_API_KEY`, then test with real screenshots from a few books and tune the synonym list
+- Verified on a real Draftea (Spanish) screenshot: all 5 legs matched live rosters, using the printed team to resolve ambiguous initials
 
 ## Phase 9 — Insights, bankroll, post-game autopsy ✅
 - Post-game review (`src/lib/bets/review.ts`): each settled leg judged on its pre-game grade separately from the result — Good read, Good process / bad result, Bad process, High-variance result (volatile markets, near misses within 10%) — with a bet-level headline that names the flagged weakest leg when it's the one that missed; recorded on the leg when it settles
