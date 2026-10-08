@@ -25,7 +25,10 @@ npm run dev
 
 Without any keys the app runs fully in demo mode:
 
-- Sports data comes from the mock provider (labelled "Demo data" in the UI).
+- Sports data comes from ESPN (live NFL schedule, rosters, injuries, stats; no key).
+  Add `ODDS_API_KEY` (the-odds-api.com) for sportsbook lines and player props;
+  without it every player is still bettable and you enter the line from your slip.
+  Set `SPORTS_DATA_PROVIDER=mock` for the labelled offline demo data.
 - Bets are saved in the browser. Add Supabase keys to sync them to an account.
 - The analyst chat uses the rule-based analyst. Add `ANTHROPIC_API_KEY` to have
   Claude (`claude-opus-5-5`) answer, grounded in the same analysis data.

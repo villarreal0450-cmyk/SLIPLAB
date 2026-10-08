@@ -9,7 +9,7 @@ import type { Pick } from "@/lib/types";
 export function SlipLegRow({ pick, onRemove, onNavigate }: { pick: Pick; onRemove: () => void; onNavigate?: () => void }) {
   return (
     <li className="flex items-center gap-3 py-3">
-      <PlayerAvatar name={pick.playerName} color={pick.meta?.teamColor} size="sm" />
+      <PlayerAvatar name={pick.playerName} color={pick.meta?.teamColor} imageUrl={pick.meta?.headshotUrl} size="sm" />
       <Link href={`/games/${pick.gameId}`} onClick={onNavigate} className="min-w-0 flex-1 rounded-lg outline-none focus-visible:ring-3 focus-visible:ring-ring/40">
         <p className="truncate font-semibold tracking-tight">{pick.playerName}</p>
         <p className="truncate text-sm text-muted-foreground">

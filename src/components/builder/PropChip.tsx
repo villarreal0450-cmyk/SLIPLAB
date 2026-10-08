@@ -13,20 +13,23 @@ type PropChipProps = {
 /** One market for a player. Shows the user's line once it's in the slip. */
 export function PropChip({ market, selected, onSelect }: PropChipProps) {
   const def = MARKETS[market.market];
+  const unpriced = market.priced === false;
   const value = selected
     ? def.kind === "yes_no"
       ? selected.direction === "no" ? "No" : "Yes"
       : formatLine(selected.market, selected.direction, selected.line)
-    : def.kind === "yes_no"
-      ? formatOdds(market.overOdds)
-      : String(market.line);
+    : unpriced
+      ? "Set line"
+      : def.kind === "yes_no"
+        ? formatOdds(market.overOdds)
+        : String(market.line);
 
   return (
     <button
       type="button"
       onClick={onSelect}
       aria-pressed={selected !== null}
-      aria-label={`${def.label}${selected ? `, in parlay: ${value}` : `, market ${value}`}`}
+      aria-label={`${def.label}${selected ? `, in parlay: ${value}` : unpriced ? ", no sportsbook line loaded" : `, market ${value}`}`}
       className={cn(
         "flex shrink-0 items-center gap-2 rounded-xl border px-3 py-2 text-left transition-colors",
         selected
@@ -36,7 +39,7 @@ export function PropChip({ market, selected, onSelect }: PropChipProps) {
     >
       <span className="flex flex-col">
         <span className="text-[11px] text-muted-foreground">{def.shortLabel}</span>
-        <span className={cn("text-sm font-semibold tabular", selected && "text-brand")}>{value}</span>
+        <span className={cn("text-sm font-semibold tabular", selected && "text-brand", !selected && unpriced && "font-medium text-muted-foreground")}>{value}</span>
       </span>
       {selected && <Check className="size-3.5 text-brand" aria-hidden="true" />}
     </button>

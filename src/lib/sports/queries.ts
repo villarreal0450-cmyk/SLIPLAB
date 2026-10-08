@@ -1,5 +1,5 @@
 import { cacheLife } from "next/cache";
-import { SPORTS, type Game, type GameOdds, type Injury, type MarketLine, type Player, type SportKey, type Team } from "@/lib/types";
+import { DEFAULT_MARKETS_BY_POSITION, SPORTS, unpricedMarket, type Game, type GameOdds, type Injury, type MarketLine, type Player, type SportKey, type Team } from "@/lib/types";
 import { getSportsDataProvider } from ".";
 
 /**
@@ -16,7 +16,7 @@ export type SlateData = {
 
 export async function loadSlate(): Promise<SlateData> {
   "use cache";
-  cacheLife("hours");
+  cacheLife("minutes");
   const provider = getSportsDataProvider();
   const sportKeys = Object.keys(SPORTS) as SportKey[];
   const [games, teamLists] = await Promise.all([
@@ -27,7 +27,7 @@ export async function loadSlate(): Promise<SlateData> {
   for (const t of teamLists.flat()) teams[t.id] = t;
   return {
     sports: sportKeys.map((key) => ({ key, label: SPORTS[key].label })),
-    games,
+    games: games.filter((g) => g.status !== "final"),
     teams,
     isMock: provider.info.isMock,
   };
@@ -54,7 +54,14 @@ export type GameBoard = {
   /** Away team first, matching "AWAY @ HOME". */
   teams: [BoardTeam, BoardTeam];
   isMock: boolean;
+  /** True when at least one sportsbook quote is loaded for this game. */
+  priced: boolean;
 };
+
+const POSITION_ORDER = ["QB", "RB", "WR", "TE"];
+const unquoted = (p: BoardPlayer) => (p.props.some((m) => m.priced !== false) ? 0 : 1);
+/** Players who won't play sink to the bottom; you can still find them. */
+const unavailable = (p: BoardPlayer) => (p.injury && (p.injury.status === "out" || p.injury.status === "ir") ? 1 : 0);
 
 /** Everything the pick builder needs for one game. Null when the game doesn't exist. */
 export async function loadGameBoard(gameId: string): Promise<GameBoard | null> {
@@ -81,13 +88,24 @@ export async function loadGameBoard(gameId: string): Promise<GameBoard | null> {
     opponent,
     players: players
       .filter((p) => p.teamId === team.id)
-      .map((player) => ({
-        player,
-        injury: injuries.find((i) => i.playerId === player.id) ?? null,
-        props: props.filter((m) => m.playerId === player.id),
-      }))
-      // Only players with at least one market are pickable.
-      .filter((p) => p.props.length > 0),
+      .map((player) => {
+        const quoted = props.filter((m) => m.playerId === player.id);
+        const quotedKeys = new Set(quoted.map((m) => m.market));
+        // Every skill player is bettable: quoted markets first, then the usual markets for the position.
+        const defaults = (DEFAULT_MARKETS_BY_POSITION[player.position] ?? [])
+          .filter((k) => !quotedKeys.has(k))
+          .map((k) => unpricedMarket(player.id, game.id, k));
+        return { player, injury: injuries.find((i) => i.playerId === player.id) ?? null, props: [...quoted, ...defaults] };
+      })
+      .filter((p) => p.props.length > 0)
+      // Position, then players with sportsbook quotes, then name.
+      .sort(
+        (a, b) =>
+          unavailable(a) - unavailable(b) ||
+          POSITION_ORDER.indexOf(a.player.position) - POSITION_ORDER.indexOf(b.player.position) ||
+          unquoted(a) - unquoted(b) ||
+          a.player.name.localeCompare(b.player.name),
+      ),
   });
 
   return {
@@ -98,6 +116,7 @@ export async function loadGameBoard(gameId: string): Promise<GameBoard | null> {
     injuries,
     teams: [buildTeam(away, home), buildTeam(home, away)],
     isMock: provider.info.isMock,
+    priced: props.length > 0,
   };
 }
 

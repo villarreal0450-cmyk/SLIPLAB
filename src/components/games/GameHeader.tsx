@@ -58,9 +58,9 @@ export function GameHeader({ board }: { board: GameBoard }) {
           )}
           {weather && (
             <div className="flex items-center gap-1.5">
-              {weather.windMph >= 15 ? <Wind className="size-3.5" aria-hidden="true" /> : <CloudSun className="size-3.5" aria-hidden="true" />}
+              {(weather.windMph ?? 0) >= 15 ? <Wind className="size-3.5" aria-hidden="true" /> : <CloudSun className="size-3.5" aria-hidden="true" />}
               <dt className="sr-only">Weather</dt>
-              <dd>{weather.isDome ? "Indoors" : `${weather.tempF}°F · wind ${weather.windMph} mph`}</dd>
+              <dd>{weather.isDome ? "Indoors" : [`${weather.tempF}°F`, weather.conditions, weather.windMph !== null ? `wind ${weather.windMph} mph` : null].filter(Boolean).join(" · ")}</dd>
             </div>
           )}
         </dl>

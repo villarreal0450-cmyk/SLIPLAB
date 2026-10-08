@@ -34,6 +34,7 @@ export function PickComposer({ target, existing, onDone }: PickComposerProps) {
   const { player, team, opponent, market } = target;
   const def = MARKETS[market.market];
   const isYesNo = def.kind === "yes_no";
+  const unpriced = market.priced === false;
   const { upsertPick, removePick } = useParlayDraft();
   const ids = { line: useId(), odds: useId(), error: useId() };
 
@@ -73,7 +74,7 @@ export function PickComposer({ target, existing, onDone }: PickComposerProps) {
   }
 
   function step(delta: number) {
-    const base = Number.isFinite(line) ? (line as number) : (market.line ?? 0);
+    const base = Number.isFinite(line) ? (line as number) : (market.line ?? (def.unit === "yds" ? 50 : 1));
     const next = Math.max(0.5, Math.round((base + delta) * 2) / 2);
     changeLine(String(next));
   }
@@ -101,8 +102,8 @@ export function PickComposer({ target, existing, onDone }: PickComposerProps) {
       direction,
       line: isYesNo ? null : (line as number),
       odds,
-      isAlternate: !isYesNo && line !== market.line,
-      meta: { teamAbbr: team.abbreviation, opponentAbbr: opponent.abbreviation, position: player.position, teamColor: team.color },
+      isAlternate: unpriced || isYesNo ? undefined : line !== market.line,
+      meta: { teamAbbr: team.abbreviation, opponentAbbr: opponent.abbreviation, position: player.position, teamColor: team.color, headshotUrl: player.headshotUrl },
     };
     const result = upsertPick(pick);
     if (result.error === "max_legs") {
@@ -118,7 +119,7 @@ export function PickComposer({ target, existing, onDone }: PickComposerProps) {
   return (
     <form onSubmit={submit} className="flex flex-col gap-6" aria-describedby={error ? ids.error : undefined}>
       <div className="flex items-center gap-3">
-        <PlayerAvatar name={player.name} color={team.color} size="lg" />
+        <PlayerAvatar name={player.name} color={team.color} imageUrl={player.headshotUrl} size="lg" />
         <div className="min-w-0">
           <p className="text-lg font-semibold tracking-tight">{player.name}</p>
           <p className="text-sm text-muted-foreground">
@@ -126,6 +127,12 @@ export function PickComposer({ target, existing, onDone }: PickComposerProps) {
           </p>
         </div>
       </div>
+
+      {unpriced && (
+        <p className="-mb-2 rounded-2xl border border-border bg-surface-sunken p-3 text-xs leading-relaxed text-muted-foreground">
+          No sportsbook line is loaded for this prop. Enter the line{isYesNo ? "" : " and odds"} from your slip; the analysis will use real stats and skip the market comparison.
+        </p>
+      )}
 
       <div>
         <p className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">{def.label}</p>
@@ -143,7 +150,7 @@ export function PickComposer({ target, existing, onDone }: PickComposerProps) {
               )}
             >
               {d}
-              {isYesNo && (
+              {isYesNo && !unpriced && (
                 <span className="ml-1.5 font-normal text-muted-foreground tabular">
                   {formatOdds(d === "yes" ? market.overOdds : market.underOdds)}
                 </span>
@@ -159,7 +166,7 @@ export function PickComposer({ target, existing, onDone }: PickComposerProps) {
             <label htmlFor={ids.line} className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
               Your line
             </label>
-            <span className="text-xs text-muted-foreground tabular">Market {market.line}</span>
+            {!unpriced && <span className="text-xs text-muted-foreground tabular">Market {market.line}</span>}
           </div>
           <div className="flex items-center gap-2">
             <Button type="button" variant="secondary" size="icon-lg" className="size-12 rounded-2xl" onClick={() => step(-lineStep(market))} aria-label="Lower line">

@@ -123,33 +123,33 @@ const team = (abbr: string, offense: TeamStats["offense"], defense: TeamStats["d
 export const teamStats: TeamStats[] = [
   team(
     "DAL",
-    { pointsPerGame: 27.4, passRate: 0.62, playsPerGame: 66, passYardsPerGame: 268, rushYardsPerGame: 104, redZoneTripsPerGame: 3.6 },
-    { pointsAllowedPerGame: 23.8, passYardsAllowedPerGame: 231, passYardsAllowedRank: 17, rushYardsAllowedPerGame: 128, rushYardsAllowedRank: 24, receivingYardsAllowedToWrPerGame: 151, rushTdsAllowedPerGame: 1.0, pressureRate: 0.34 },
+    { pointsPerGame: 27.4, passRate: 0.62, playsPerGame: 66, passYardsPerGame: 268, rushYardsPerGame: 104 },
+    { pointsAllowedPerGame: 23.8, passYardsAllowedPerGame: 231, passYardsAllowedRank: 17, rushYardsAllowedPerGame: 128, rushYardsAllowedRank: 24, receivingYardsAllowedPerGame: 151, rushTdsAllowedPerGame: 1.0, sacksPerGame: 2.7 },
   ),
   team(
     "TB",
-    { pointsPerGame: 24.6, passRate: 0.58, playsPerGame: 64, passYardsPerGame: 251, rushYardsPerGame: 118, redZoneTripsPerGame: 3.2 },
-    { pointsAllowedPerGame: 25.1, passYardsAllowedPerGame: 263, passYardsAllowedRank: 29, rushYardsAllowedPerGame: 112, rushYardsAllowedRank: 14, receivingYardsAllowedToWrPerGame: 178, rushTdsAllowedPerGame: 1.1, pressureRate: 0.31 },
+    { pointsPerGame: 24.6, passRate: 0.58, playsPerGame: 64, passYardsPerGame: 251, rushYardsPerGame: 118 },
+    { pointsAllowedPerGame: 25.1, passYardsAllowedPerGame: 263, passYardsAllowedRank: 29, rushYardsAllowedPerGame: 112, rushYardsAllowedRank: 14, receivingYardsAllowedPerGame: 178, rushTdsAllowedPerGame: 1.1, sacksPerGame: 2.5 },
   ),
   team(
     "ATL",
-    { pointsPerGame: 22.8, passRate: 0.54, playsPerGame: 63, passYardsPerGame: 224, rushYardsPerGame: 131, redZoneTripsPerGame: 3.0 },
-    { pointsAllowedPerGame: 21.2, passYardsAllowedPerGame: 218, passYardsAllowedRank: 12, rushYardsAllowedPerGame: 104, rushYardsAllowedRank: 9, receivingYardsAllowedToWrPerGame: 142, rushTdsAllowedPerGame: 0.8, pressureRate: 0.36 },
+    { pointsPerGame: 22.8, passRate: 0.54, playsPerGame: 63, passYardsPerGame: 224, rushYardsPerGame: 131 },
+    { pointsAllowedPerGame: 21.2, passYardsAllowedPerGame: 218, passYardsAllowedRank: 12, rushYardsAllowedPerGame: 104, rushYardsAllowedRank: 9, receivingYardsAllowedPerGame: 142, rushTdsAllowedPerGame: 0.8, sacksPerGame: 2.9 },
   ),
   team(
     "NO",
-    { pointsPerGame: 18.4, passRate: 0.57, playsPerGame: 61, passYardsPerGame: 205, rushYardsPerGame: 96, redZoneTripsPerGame: 2.4 },
-    { pointsAllowedPerGame: 26.6, passYardsAllowedPerGame: 246, passYardsAllowedRank: 23, rushYardsAllowedPerGame: 134, rushYardsAllowedRank: 27, receivingYardsAllowedToWrPerGame: 166, rushTdsAllowedPerGame: 1.3, pressureRate: 0.29 },
+    { pointsPerGame: 18.4, passRate: 0.57, playsPerGame: 61, passYardsPerGame: 205, rushYardsPerGame: 96 },
+    { pointsAllowedPerGame: 26.6, passYardsAllowedPerGame: 246, passYardsAllowedRank: 23, rushYardsAllowedPerGame: 134, rushYardsAllowedRank: 27, receivingYardsAllowedPerGame: 166, rushTdsAllowedPerGame: 1.3, sacksPerGame: 2.3 },
   ),
   team(
     "KC",
-    { pointsPerGame: 25.2, passRate: 0.63, playsPerGame: 67, passYardsPerGame: 262, rushYardsPerGame: 98, redZoneTripsPerGame: 3.4 },
-    { pointsAllowedPerGame: 19.8, passYardsAllowedPerGame: 212, passYardsAllowedRank: 10, rushYardsAllowedPerGame: 109, rushYardsAllowedRank: 12, receivingYardsAllowedToWrPerGame: 139, rushTdsAllowedPerGame: 0.7, pressureRate: 0.37 },
+    { pointsPerGame: 25.2, passRate: 0.63, playsPerGame: 67, passYardsPerGame: 262, rushYardsPerGame: 98 },
+    { pointsAllowedPerGame: 19.8, passYardsAllowedPerGame: 212, passYardsAllowedRank: 10, rushYardsAllowedPerGame: 109, rushYardsAllowedRank: 12, receivingYardsAllowedPerGame: 139, rushTdsAllowedPerGame: 0.7, sacksPerGame: 3.0 },
   ),
   team(
     "DEN",
-    { pointsPerGame: 23.6, passRate: 0.56, playsPerGame: 65, passYardsPerGame: 236, rushYardsPerGame: 121, redZoneTripsPerGame: 3.1 },
-    { pointsAllowedPerGame: 17.9, passYardsAllowedPerGame: 198, passYardsAllowedRank: 4, rushYardsAllowedPerGame: 97, rushYardsAllowedRank: 5, receivingYardsAllowedToWrPerGame: 128, rushTdsAllowedPerGame: 0.6, pressureRate: 0.41 },
+    { pointsPerGame: 23.6, passRate: 0.56, playsPerGame: 65, passYardsPerGame: 236, rushYardsPerGame: 121 },
+    { pointsAllowedPerGame: 17.9, passYardsAllowedPerGame: 198, passYardsAllowedRank: 4, rushYardsAllowedPerGame: 97, rushYardsAllowedRank: 5, receivingYardsAllowedPerGame: 128, rushTdsAllowedPerGame: 0.6, sacksPerGame: 3.3 },
   ),
 ];
 

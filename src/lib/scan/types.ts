@@ -43,8 +43,10 @@ export interface BetSlipParser {
 export type CatalogMarket = {
   market: MarketKey;
   line: number | null;
+  /** NaN when no sportsbook quote is loaded. */
   overOdds: number;
   underOdds: number;
+  priced: boolean;
   alternates?: { line: number; overOdds: number; underOdds: number }[];
 };
 export type CatalogPlayer = {
@@ -56,10 +58,11 @@ export type CatalogPlayer = {
   teamAbbr: string;
   opponentAbbr: string;
   teamColor: string;
+  headshotUrl?: string;
   gameId: string;
   markets: CatalogMarket[];
 };
-export type CatalogGame = { gameId: string; label: string; startsAt: string; players: CatalogPlayer[] };
+export type CatalogGame = { gameId: string; label: string; startsAt: string; players: CatalogPlayer[]; priced: boolean };
 
 export type LegStatus = "ready" | "review" | "unmatched";
 

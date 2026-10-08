@@ -32,12 +32,21 @@ change scores and must disclose `missingData`.
 ## Sports data
 
 `SportsDataProvider` (`src/lib/sports/provider.ts`) is the only read path.
-`getSportsDataProvider()` picks the implementation from `SPORTS_DATA_PROVIDER`.
-Every provider exposes `info.isMock`; `<MockDataBadge>` renders when it's true.
+`getSportsDataProvider()` picks the implementation from `SPORTS_DATA_PROVIDER`:
 
-To add a real provider: implement the interface in `src/lib/sports/<vendor>/`,
-map vendor payloads to `src/lib/types/sports.ts`, add a case in `index.ts`.
-Cache at the provider level (`use cache` + `cacheLife`) once real network calls exist.
+- `espn` — `EspnSportsDataProvider`: live NFL schedule, teams, rosters, injuries,
+  game logs and team stats from ESPN's public site API (no key). Player props come
+  from `TheOddsApi` when `ODDS_API_KEY` is set. Mapping lives in `espn/map.ts`
+  (pure, unit-tested); all HTTP goes through `http.ts` (TTL cache, de-dup, timeout,
+  stale-on-error).
+- `mock` — labelled demo slate for tests and offline work.
+
+Every provider exposes `info.isMock`; `<MockDataBadge>` renders when it's true.
+Markets without a sportsbook quote are "unpriced" (`MarketLine.priced === false`):
+the user supplies the line, and the line-value factor is skipped and disclosed.
+
+To add a provider: implement the interface in `src/lib/sports/<vendor>/`, map vendor
+payloads to `src/lib/types/sports.ts`, add a case in `index.ts`.
 
 ## Scoring engine
 

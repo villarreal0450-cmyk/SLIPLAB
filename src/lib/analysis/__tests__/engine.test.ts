@@ -58,6 +58,26 @@ describe("scorePick", () => {
   });
 });
 
+describe("game script", () => {
+  it("names the real favorite whichever side the picks are on", async () => {
+    // In the demo slate Dallas is the away favorite (TB +2.5 at home).
+    const away = await analyzeParlay(demoParlay, provider);
+    expect(away.gameScripts[0].beats.join(" ")).toMatch(/Dallas is only a slight favorite/);
+    // A pick on the home side (Tampa Bay) must still see Dallas as the favorite.
+    const tbPick = { ...dakPassing, id: "tb", playerId: "mike-evans", playerName: "Mike Evans", teamId: "nfl-tb", opponentTeamId: "nfl-dal", market: "receiving_yards" as const, line: 60 };
+    const home = await analyzeParlay({ id: "home", picks: [tbPick] }, provider);
+    expect(home.gameScripts[0].beats.join(" ")).toMatch(/Dallas is only a slight favorite/);
+  });
+});
+
+describe("singles", () => {
+  it("grade exactly like their one leg", async () => {
+    const single = await analyzeParlay({ id: "s", picks: [lambReceiving] }, provider);
+    expect(single.score).toBe(single.picks[0].score);
+    expect(single.summary).toMatch(/^A single/);
+  });
+});
+
 describe("weakest leg", () => {
   it("is not flagged when every leg grades good or better", async () => {
     const strongOnly = { id: "strong", picks: [dakPassing, { ...lambReceiving, line: 66.5, odds: -210 }] };

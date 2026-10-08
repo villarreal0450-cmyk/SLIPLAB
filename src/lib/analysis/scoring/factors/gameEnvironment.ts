@@ -43,7 +43,7 @@ export const gameEnvironment: ScoringFactor = {
     }
 
     const w = ctx.game.weather;
-    if (w && !w.isDome && w.windMph >= 15 && isPassing) {
+    if (w && !w.isDome && w.windMph !== null && w.windMph >= 15 && isPassing) {
       adjustment -= 0.12;
       notes.push(`Wind at ${w.windMph} mph could hurt the passing game.`);
     }

@@ -81,11 +81,17 @@ Status legend: ✅ done · 🔧 in progress · ⬜ not started
 - Bankroll (device): bankroll, unit size, warn-above %; Save bet shows units and share of bankroll, warns above the limit with a suggested exposure by risk (low 1u, medium 0.5u, high 0.25u), and flags stakes creeping up after recent losses; never blocks, never suggests staking more
 - **Later:** sync bankroll to `bankroll_settings` and materialize insights in `user_insights` once Supabase is live
 
-## Phase 10 — Real sports data ⬜
-- First real `SportsDataProvider`, caching, live scores, automated settlement
+## Phase 10 — Real sports data 🔧 (NFL live; props need a key)
+- `EspnSportsDataProvider` (`src/lib/sports/espn`): live NFL schedule, all 32 teams with logos, full rosters with headshots, injuries, per-player game logs and season averages, team offense/defense with league ranks computed across all 32 teams, spread/total; no key, cached per endpoint (`src/lib/sports/http.ts`) with stale-on-error
+- `TheOddsApi` (`src/lib/sports/odds`): player props (pass/rush/receiving yards, receptions, completions, attempts, pass TDs, anytime TD) and optional alternates, matched to ESPN rosters; one request per game, cached 3h; enabled by `ODDS_API_KEY`
+- Every QB/RB/WR/TE is bettable even without a quote: unpriced markets ask for the line from your slip and the analysis skips the market comparison (disclosed)
+- Game page: player search, ruled-out players last and dimmed, injury report collapsed by severity
+- Fixes found with real data: game-script home-team precedence bug (favorite was reversed when the picks were on the home side), single-leg slips now grade exactly like their leg
+- ESPN endpoints are public but undocumented: fine for building and a beta; move to a licensed feed (e.g. SportsDataIO, Sportradar) before a large public launch
+- **Next:** add `ODDS_API_KEY`; NBA/MLB/NHL/NCAAF via the same ESPN pattern; automatic bet settlement from final box scores
 
 ## Open decisions (need input)
 1. Supabase project URL + publishable key + service role key (blocks Phase 6+).
 2. Anthropic API key — the chat works without it (rule-based); with it, Claude answers free-form questions and betslip scanning becomes possible (Phase 8).
-3. Preferred sports data vendor for Phase 10 (affects which markets we can support).
+3. Sports data: ESPN (live, no key) + The Odds API for props — add `ODDS_API_KEY` to enable lines.
 4. Product name — `SlipLab` is a placeholder in `src/config/brand.ts`.

@@ -42,7 +42,7 @@ export async function loadCandidates(gameIds: string[], provider: SportsDataProv
             const ctx = await buildPickContext(draft, provider);
             const pick: Pick = {
               ...draft,
-              meta: { teamAbbr: ctx.team.abbreviation, opponentAbbr: ctx.opponent.abbreviation, position: player.position, teamColor: ctx.team.color },
+              meta: { teamAbbr: ctx.team.abbreviation, opponentAbbr: ctx.opponent.abbreviation, position: player.position, teamColor: ctx.team.color, headshotUrl: player.headshotUrl },
             };
             return { pick, ctx: { ...ctx, pick } };
           } catch {

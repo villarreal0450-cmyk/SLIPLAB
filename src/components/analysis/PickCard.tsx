@@ -42,7 +42,7 @@ export function PickCard({ index, pick, analysis, expanded, onToggle, scriptEffe
           <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-semibold tabular text-muted-foreground">
             {index}
           </span>
-          <PlayerAvatar name={pick.playerName} color={pick.meta?.teamColor} size="sm" />
+          <PlayerAvatar name={pick.playerName} color={pick.meta?.teamColor} imageUrl={pick.meta?.headshotUrl} size="sm" />
           <div className="min-w-0 flex-1">
             <p className="truncate font-semibold tracking-tight">{pick.playerName}</p>
             <p className="truncate text-xs text-muted-foreground">

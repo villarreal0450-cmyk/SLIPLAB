@@ -82,8 +82,10 @@ export type Game = {
 
 export type GameWeather = {
   tempF: number;
-  windMph: number;
-  precipitationChance: number; // 0..1
+  /** Null when the source doesn't report it (ESPN gives temperature and conditions only). */
+  windMph: number | null;
+  precipitationChance: number | null; // 0..1
+  conditions?: string;
   isDome: boolean;
 };
 
@@ -156,7 +158,6 @@ export type TeamStats = {
     playsPerGame: number;
     passYardsPerGame: number;
     rushYardsPerGame: number;
-    redZoneTripsPerGame: number;
   };
   /** What the defense allows, with league rank (1 = best defense). */
   defense: {
@@ -165,9 +166,11 @@ export type TeamStats = {
     passYardsAllowedRank: number;
     rushYardsAllowedPerGame: number;
     rushYardsAllowedRank: number;
-    receivingYardsAllowedToWrPerGame: number;
+    /** Receiving yards allowed per game, all receivers. */
+    receivingYardsAllowedPerGame: number;
     rushTdsAllowedPerGame: number;
-    pressureRate: number; // 0..1
+    /** Defensive sacks per game; null when unavailable. */
+    sacksPerGame: number | null;
   };
 };
 
@@ -355,14 +358,34 @@ export type MarketLine = {
   /** Alternate lines the book offers, ascending. */
   alternates?: { line: number; overOdds: number; underOdds: number }[];
   updatedAt: string;
+  /**
+   * False for a market we offer without a sportsbook quote (no odds source
+   * connected, or the book hasn't posted it). Line and odds are then unknown:
+   * `line` is null and prices are NaN. Defaults to true.
+   */
+  priced?: boolean;
 };
+
+/** Markets offered for each position when no sportsbook quote exists, most stable first. */
+export const DEFAULT_MARKETS_BY_POSITION: Partial<Record<Position, MarketKey[]>> = {
+  QB: ["passing_yards", "completions", "passing_tds", "rushing_yards", "anytime_td"],
+  RB: ["rushing_yards", "rushing_attempts", "receptions", "receiving_yards", "anytime_td"],
+  WR: ["receiving_yards", "receptions", "anytime_td"],
+  TE: ["receiving_yards", "receptions", "anytime_td"],
+};
+
+export function unpricedMarket(playerId: string, gameId: string, market: MarketKey): MarketLine {
+  return { playerId, gameId, market, line: null, overOdds: Number.NaN, underOdds: Number.NaN, updatedAt: "", priced: false };
+}
 
 export type GameOdds = {
   gameId: string;
   /** Spread from the home team's perspective (negative = home favored). */
   homeSpread: number;
   total: number;
-  homeMoneyline: number;
-  awayMoneyline: number;
+  homeMoneyline: number | null;
+  awayMoneyline: number | null;
+  /** Which book the line came from, when known. */
+  source?: string;
   updatedAt: string;
 };

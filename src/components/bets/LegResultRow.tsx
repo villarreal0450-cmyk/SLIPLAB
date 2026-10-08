@@ -41,7 +41,7 @@ export function LegResultRow({ leg, isWeakest, editable, onChange }: LegResultRo
   return (
     <li className="flex flex-col gap-3 py-4 first:pt-0 last:pb-0">
       <div className="flex items-center gap-3">
-        <PlayerAvatar name={leg.pick.playerName} color={leg.pick.meta?.teamColor} size="sm" />
+        <PlayerAvatar name={leg.pick.playerName} color={leg.pick.meta?.teamColor} imageUrl={leg.pick.meta?.headshotUrl} size="sm" />
         <div className="min-w-0 flex-1">
           <p className="truncate font-semibold tracking-tight">{leg.pick.playerName}</p>
           <p className="truncate text-xs text-muted-foreground">

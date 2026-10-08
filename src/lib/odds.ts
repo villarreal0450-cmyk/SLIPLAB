@@ -26,6 +26,6 @@ export function combineOdds(legOdds: (number | undefined | null)[]): number | nu
 }
 
 export function formatOdds(odds: number | null | undefined): string {
-  if (odds === null || odds === undefined) return "—";
+  if (odds === null || odds === undefined || !Number.isFinite(odds)) return "—";
   return odds > 0 ? `+${odds}` : `${odds}`;
 }

@@ -16,6 +16,7 @@ const pickMetaSchema = z.object({
   opponentAbbr: z.string().max(8),
   position: z.string().max(8),
   teamColor: z.string().regex(/^#[0-9a-fA-F]{3,8}$/),
+  headshotUrl: z.string().url().startsWith("https://").max(300).optional(),
 });
 
 export const pickSchema = z

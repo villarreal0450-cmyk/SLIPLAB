@@ -3,6 +3,10 @@ import { TeamMark } from "@/components/games/TeamMark";
 import { InjuryReport } from "@/components/games/InjuryReport";
 import type { PickBreakdown } from "@/lib/analysis";
 
+function weatherText(w: { tempF: number; windMph: number | null; conditions: string | null }) {
+  return [`${w.tempF}°F`, w.conditions, w.windMph !== null ? `${w.windMph} mph` : null].filter(Boolean).join(" · ");
+}
+
 function ordinal(n: number) {
   const s = ["th", "st", "nd", "rd"];
   const v = n % 100;
@@ -15,10 +19,10 @@ export function MatchupPanel({ breakdown: b }: { breakdown: PickBreakdown }) {
   const rows = d
     ? [
         { label: "Pass yards allowed / game", value: d.passYardsAllowed, rank: d.passRank, focus: d.focus === "pass" },
-        { label: "Receiving yards to WRs / game", value: d.wrYardsAllowed, rank: null, focus: false },
+        { label: "Receiving yards allowed / game", value: d.wrYardsAllowed, rank: null, focus: false },
         { label: "Rush yards allowed / game", value: d.rushYardsAllowed, rank: d.rushRank, focus: d.focus === "run" },
         { label: "Points allowed / game", value: d.pointsAllowed, rank: null, focus: false },
-        { label: "Pressure rate", value: `${Math.round(d.pressureRate * 100)}%`, rank: null, focus: false },
+        { label: "Sacks / game (defense)", value: d.sacksPerGame === null ? "—" : d.sacksPerGame.toFixed(1), rank: null, focus: false },
       ]
     : [];
   const spread = b.game.spread;
@@ -74,8 +78,8 @@ export function MatchupPanel({ breakdown: b }: { breakdown: PickBreakdown }) {
           <div>
             <dt className="text-xs text-muted-foreground">Weather</dt>
             <dd className="flex items-center gap-1.5 font-medium">
-              {b.game.weather && b.game.weather.windMph >= 15 ? <Wind className="size-3.5 text-muted-foreground" aria-hidden="true" /> : <CloudSun className="size-3.5 text-muted-foreground" aria-hidden="true" />}
-              {b.game.weather ? (b.game.weather.isDome ? "Indoors" : `${b.game.weather.tempF}°F · ${b.game.weather.windMph} mph`) : "—"}
+              {b.game.weather && (b.game.weather.windMph ?? 0) >= 15 ? <Wind className="size-3.5 text-muted-foreground" aria-hidden="true" /> : <CloudSun className="size-3.5 text-muted-foreground" aria-hidden="true" />}
+              {b.game.weather ? (b.game.weather.isDome ? "Indoors" : weatherText(b.game.weather)) : "—"}
             </dd>
           </div>
         </dl>

@@ -7,12 +7,13 @@ import { MARKETS, type Direction, type MarketLine } from "@/lib/types";
  * market doesn't list that line — we never invent a price.
  */
 export function marketOddsFor(market: MarketLine, direction: Direction, line: number | null): number | undefined {
+  const valid = (n: number) => (Number.isFinite(n) ? n : undefined);
   if (MARKETS[market.market].kind === "yes_no") {
-    return direction === "no" ? market.underOdds : market.overOdds;
+    return valid(direction === "no" ? market.underOdds : market.overOdds);
   }
   if (line === null) return undefined;
   const candidates = Number.isInteger(line) ? [line, line - 0.5] : [line];
-  const pickPrice = (o: { overOdds: number; underOdds: number }) => (direction === "under" ? o.underOdds : o.overOdds);
+  const pickPrice = (o: { overOdds: number; underOdds: number }) => valid(direction === "under" ? o.underOdds : o.overOdds);
   for (const c of candidates) {
     if (market.line === c) return pickPrice(market);
     const alt = market.alternates?.find((a) => a.line === c);

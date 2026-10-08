@@ -13,7 +13,7 @@ function defenseSignal(market: MarketKey, d: TeamStats["defense"]): { rank: numb
       return { rank: d.passYardsAllowedRank, perGame: d.passYardsAllowedPerGame, label: "passing yards per game", unit: "pass" };
     case "receiving_yards":
     case "receptions":
-      return { rank: d.passYardsAllowedRank, perGame: d.receivingYardsAllowedToWrPerGame, label: "receiving yards per game to wideouts", unit: "pass" };
+      return { rank: d.passYardsAllowedRank, perGame: d.receivingYardsAllowedPerGame, label: "receiving yards per game", unit: "pass" };
     case "rushing_yards":
     case "rushing_attempts":
       return { rank: d.rushYardsAllowedRank, perGame: d.rushYardsAllowedPerGame, label: "rushing yards per game", unit: "run" };

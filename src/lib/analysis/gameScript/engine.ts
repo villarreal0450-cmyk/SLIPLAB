@@ -13,7 +13,8 @@ export function buildGameScript(contexts: PickContext[]): GameScript | null {
   const first = contexts[0];
   if (!first) return null;
   const { game, gameOdds } = first;
-  const home = contexts.find((c) => c.team.id === game.homeTeamId)?.team ?? first.opponent.id === game.homeTeamId ? first.opponent : first.team;
+  // Resolve the home team from the game itself; the first pick may be on either side.
+  const home = first.team.id === game.homeTeamId ? first.team : first.opponent;
   const away = home.id === first.team.id ? first.opponent : first.team;
 
   const homeStats = contexts.find((c) => c.team.id === home.id)?.teamStats ?? contexts.find((c) => c.opponent.id === home.id)?.opponentStats ?? null;

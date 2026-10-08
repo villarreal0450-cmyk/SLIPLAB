@@ -86,7 +86,7 @@ export function LegAlternativesSheet({ request, onClose }: { request: Alternativ
                   return (
                     <li key={o.pick.id} className="surface flex flex-col gap-3 p-4">
                       <div className="flex items-center gap-3">
-                        <PlayerAvatar name={o.pick.playerName} color={o.pick.meta?.teamColor} size="sm" />
+                        <PlayerAvatar name={o.pick.playerName} color={o.pick.meta?.teamColor} imageUrl={o.pick.meta?.headshotUrl} size="sm" />
                         <div className="min-w-0 flex-1">
                           <p className="truncate font-semibold tracking-tight">{o.pick.playerName}</p>
                           <p className="truncate text-xs text-muted-foreground">

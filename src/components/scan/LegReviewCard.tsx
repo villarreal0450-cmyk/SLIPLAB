@@ -139,7 +139,7 @@ export function LegReviewCard({ leg, state, catalog, onChange }: LegReviewCardPr
             {markets.map((m) => (
               <option key={m.market} value={m.market}>
                 {MARKETS[m.market].label}
-                {m.line !== null ? ` (market ${m.line})` : ""}
+                {m.priced && m.line !== null ? ` (market ${m.line})` : ""}
               </option>
             ))}
           </select>

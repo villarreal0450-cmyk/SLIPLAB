@@ -9,7 +9,7 @@ export function BreakdownHeader({ breakdown: b }: { breakdown: PickBreakdown }) 
 
   return (
     <section className="flex items-center gap-4">
-      <PlayerAvatar name={b.player.name} color={b.team.color} size="lg" className="sm:size-20 sm:text-2xl" />
+      <PlayerAvatar name={b.player.name} color={b.team.color} imageUrl={b.player.headshotUrl ?? undefined} size="lg" className="sm:size-20 sm:text-2xl" />
       <div className="min-w-0 flex-1">
         <h1 className="text-xl font-semibold leading-tight tracking-tight sm:text-3xl">{b.player.name}</h1>
         <p className="text-sm text-muted-foreground">

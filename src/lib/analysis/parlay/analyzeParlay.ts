@@ -34,9 +34,9 @@ export function analyzeParlayFromContexts(parlay: Parlay, contexts: PickContext[
   const avg = mean(picks.map((p) => p.score));
   const min = picks.length ? Math.min(...picks.map((p) => p.score)) : 0;
   const legPenalty = Math.max(0, legCount - 4) * 0.3;
-  const score = legCount
-    ? round1(clamp(avg * 0.6 + min * 0.2 + (cohesion.score / 10) * 0.2 - legPenalty, 0, 10))
-    : 0;
+  // A single has no structure to grade: it is exactly as good as its one leg.
+  const score =
+    legCount === 0 ? 0 : legCount === 1 ? picks[0].score : round1(clamp(avg * 0.6 + min * 0.2 + (cohesion.score / 10) * 0.2 - legPenalty, 0, 10));
   const tier = tierForScore(score);
 
   const riskLevel = computeRisk(contexts);
@@ -104,6 +104,7 @@ function findWeakestLeg(picks: PickAnalysis[], contexts: PickContext[]): Weakest
 
 function buildSummary(picks: PickAnalysis[], contexts: PickContext[], cohesion: number, weakest: WeakestLeg | null): string {
   if (!picks.length) return "Add a pick to get started.";
+  if (picks.length === 1) return `A single, so it lives or dies on one leg. ${picks[0].summary}`;
   const strong = picks.filter((p) => p.score >= 7.5).length;
   const teams = new Set(contexts.map((c) => c.team.city));
   const teamText = teams.size === 1 ? `Your ${[...teams][0]} legs` : "Your legs";

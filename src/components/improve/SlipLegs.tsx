@@ -11,7 +11,7 @@ export function SlipLegs({ picks, flagged = [] }: { picks: Pick[]; flagged?: str
         const flag = flagged.includes(p.id);
         return (
           <li key={p.id} className="flex items-center gap-3">
-            <PlayerAvatar name={p.playerName} color={p.meta?.teamColor} size="sm" />
+            <PlayerAvatar name={p.playerName} color={p.meta?.teamColor} imageUrl={p.meta?.headshotUrl} size="sm" />
             <div className="min-w-0 flex-1">
               <p className="truncate font-medium tracking-tight">{p.playerName}</p>
               <p className="truncate text-xs text-muted-foreground">{describePick(p)}{p.isAlternate ? " (alt)" : ""}</p>

@@ -1,7 +1,7 @@
 import { lastName } from "@/lib/format/names";
 import { marketOddsFor } from "@/lib/parlay/marketMath";
 import type { SportsDataProvider } from "@/lib/sports/provider";
-import { MARKETS, type Direction, type MarketKey, type Pick } from "@/lib/types";
+import { DEFAULT_MARKETS_BY_POSITION, MARKETS, type Direction, type MarketKey, type Pick } from "@/lib/types";
 import type { CatalogGame, CatalogPlayer, NormalizedLeg, ParsedLeg, ParsedSlip } from "./types";
 
 /**
@@ -113,10 +113,17 @@ export async function buildCatalog(provider: SportsDataProvider): Promise<Catalo
         gameId: game.id,
         label: `${away?.abbreviation ?? "AWAY"} @ ${home?.abbreviation ?? "HOME"}`,
         startsAt: game.startsAt,
+        priced: props.length > 0,
         players: players
           .map((p): CatalogPlayer => {
             const team = teamOf(p.teamId);
             const opponentTeamId = p.teamId === game.homeTeamId ? game.awayTeamId : game.homeTeamId;
+            const quoted = props
+              .filter((m) => m.playerId === p.id)
+              .map((m) => ({ market: m.market, line: m.line, overOdds: m.overOdds, underOdds: m.underOdds, alternates: m.alternates, priced: m.priced !== false }));
+            const extra = (DEFAULT_MARKETS_BY_POSITION[p.position] ?? [])
+              .filter((k) => !quoted.some((q) => q.market === k))
+              .map((k) => ({ market: k, line: null, overOdds: Number.NaN, underOdds: Number.NaN, priced: false }));
             return {
               id: p.id,
               name: p.name,
@@ -126,10 +133,9 @@ export async function buildCatalog(provider: SportsDataProvider): Promise<Catalo
               teamAbbr: team?.abbreviation ?? "",
               opponentAbbr: teamOf(opponentTeamId)?.abbreviation ?? "",
               teamColor: team?.color ?? "#3a3a40",
+              headshotUrl: p.headshotUrl,
               gameId: game.id,
-              markets: props
-                .filter((m) => m.playerId === p.id)
-                .map((m) => ({ market: m.market, line: m.line, overOdds: m.overOdds, underOdds: m.underOdds, alternates: m.alternates })),
+              markets: [...quoted, ...extra],
             };
           })
           .filter((p) => p.markets.length > 0),
@@ -153,17 +159,18 @@ export function pickFor(player: CatalogPlayer, market: MarketKey, direction: Dir
     direction,
     line: MARKETS[market].kind === "yes_no" ? null : line,
     odds,
-    isAlternate: m ? m.line !== line : undefined,
-    meta: { teamAbbr: player.teamAbbr, opponentAbbr: player.opponentAbbr, position: player.position, teamColor: player.teamColor },
+    isAlternate: m?.priced && MARKETS[market].kind === "over_under" ? m.line !== line : undefined,
+    meta: { teamAbbr: player.teamAbbr, opponentAbbr: player.opponentAbbr, position: player.position, teamColor: player.teamColor, headshotUrl: player.headshotUrl },
   };
 }
 
 export function normalizeSlip(slip: ParsedSlip, catalog: CatalogGame[], newId: () => string): NormalizedLeg[] {
   const players = catalog.flatMap((g) => g.players);
-  return slip.legs.map((raw) => normalizeLeg(raw, players, newId()));
+  const pricedGames = new Set(catalog.filter((g) => g.priced).map((g) => g.gameId));
+  return slip.legs.map((raw) => normalizeLeg(raw, players, pricedGames, newId()));
 }
 
-function normalizeLeg(raw: ParsedLeg, players: CatalogPlayer[], id: string): NormalizedLeg {
+function normalizeLeg(raw: ParsedLeg, players: CatalogPlayer[], pricedGames: Set<string>, id: string): NormalizedLeg {
   const issues: string[] = [];
   const found = matchPlayer(raw.player, players);
   if (!found) {
@@ -183,8 +190,10 @@ function normalizeLeg(raw: ParsedLeg, players: CatalogPlayer[], id: string): Nor
     return { id, raw, status: "review", pick: null, issues: [...issues, raw.market ? `Didn't recognize the prop "${raw.market}". Pick it below.` : "No prop category was readable."] };
   }
   const def = MARKETS[market];
-  const available = player.markets.find((m) => m.market === market);
-  if (!available) issues.push(`No ${def.label.toLowerCase()} market for ${player.name} in our data.`);
+  const listed = player.markets.find((m) => m.market === market);
+  const available = listed?.priced ? listed : undefined;
+  // Only worth flagging when this game has sportsbook quotes and this prop isn't among them.
+  if (!available && pricedGames.has(player.gameId)) issues.push(`No sportsbook line for ${player.name}'s ${def.label.toLowerCase()} in our data.`);
 
   let direction: Direction;
   if (def.kind === "yes_no") {
@@ -205,7 +214,11 @@ function normalizeLeg(raw: ParsedLeg, players: CatalogPlayer[], id: string): Nor
     odds = undefined;
   }
   if (odds === undefined && available && line !== undefined) {
-    const marketPrice = marketOddsFor({ playerId: player.id, gameId: player.gameId, market, line: available.line, overOdds: available.overOdds, underOdds: available.underOdds, alternates: available.alternates, updatedAt: "" }, direction, line);
+    const marketPrice = marketOddsFor(
+      { playerId: player.id, gameId: player.gameId, market, line: available.line, overOdds: available.overOdds, underOdds: available.underOdds, alternates: available.alternates, updatedAt: "" },
+      direction,
+      line,
+    );
     if (marketPrice !== undefined) {
       odds = marketPrice;
       issues.push("Odds weren't printed; filled from the market price.");

@@ -9,7 +9,7 @@ import { isHit } from "./scoring/math";
 export type PickBreakdown = {
   pick: Pick;
   analysis: PickAnalysis;
-  player: { name: string; position: string; jerseyNumber: number | null };
+  player: { name: string; position: string; jerseyNumber: number | null; headshotUrl: string | null };
   team: Team;
   opponent: Team;
   game: {
@@ -17,7 +17,7 @@ export type PickBreakdown = {
     startsAt: string;
     venue: string | null;
     isHome: boolean;
-    weather: { tempF: number; windMph: number; isDome: boolean } | null;
+    weather: { tempF: number; windMph: number | null; isDome: boolean; conditions: string | null } | null;
     spread: number | null; // from this player's team perspective; negative = favored
     total: number | null;
   };
@@ -49,7 +49,7 @@ export type DefenseProfile = {
   rushYardsAllowed: number;
   rushRank: number;
   wrYardsAllowed: number;
-  pressureRate: number;
+  sacksPerGame: number | null;
   /** Which unit matters most for this market. */
   focus: "pass" | "run";
 };
@@ -112,7 +112,7 @@ export function buildPickBreakdown(
   return {
     pick: ctx.pick,
     analysis,
-    player: { name: ctx.player.name, position: ctx.player.position, jerseyNumber: ctx.player.jerseyNumber ?? null },
+    player: { name: ctx.player.name, position: ctx.player.position, jerseyNumber: ctx.player.jerseyNumber ?? null, headshotUrl: ctx.player.headshotUrl ?? null },
     team: ctx.team,
     opponent: ctx.opponent,
     game: {
@@ -120,7 +120,9 @@ export function buildPickBreakdown(
       startsAt: ctx.game.startsAt,
       venue: ctx.game.venue ?? null,
       isHome,
-      weather: ctx.game.weather ? { tempF: ctx.game.weather.tempF, windMph: ctx.game.weather.windMph, isDome: ctx.game.weather.isDome } : null,
+      weather: ctx.game.weather
+        ? { tempF: ctx.game.weather.tempF, windMph: ctx.game.weather.windMph, isDome: ctx.game.weather.isDome, conditions: ctx.game.weather.conditions ?? null }
+        : null,
       spread: odds ? (isHome ? odds.homeSpread : -odds.homeSpread) : null,
       total: odds?.total ?? null,
     },
@@ -140,8 +142,8 @@ export function buildPickBreakdown(
           passRank: d.passYardsAllowedRank,
           rushYardsAllowed: d.rushYardsAllowedPerGame,
           rushRank: d.rushYardsAllowedRank,
-          wrYardsAllowed: d.receivingYardsAllowedToWrPerGame,
-          pressureRate: d.pressureRate,
+          wrYardsAllowed: d.receivingYardsAllowedPerGame,
+          sacksPerGame: d.sacksPerGame,
           focus: RUN_MARKETS.has(ctx.pick.market) ? "run" : "pass",
         }
       : null,

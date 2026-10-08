@@ -39,7 +39,7 @@ export function UpcomingGamesClient({ data }: { data: SlateData }) {
         <EmptyState
           icon={<CalendarX2 />}
           title={`No ${data.sports.find((s) => s.key === sport)?.label ?? ""} games loaded`}
-          description={data.isMock ? "Demo data only covers the NFL slate for now." : "Nothing scheduled in this window."}
+          description={data.isMock ? "Demo data only covers the NFL slate for now." : "Only the NFL is connected so far. More leagues are coming."}
           className="py-10"
         />
       ) : (

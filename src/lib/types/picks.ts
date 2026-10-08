@@ -32,6 +32,7 @@ export type PickMeta = {
   opponentAbbr: string;
   position: string;
   teamColor: string;
+  headshotUrl?: string;
 };
 
 /** A draft parlay — the thing being analyzed. */
