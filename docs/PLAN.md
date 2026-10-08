@@ -88,7 +88,8 @@ Status legend: ✅ done · 🔧 in progress · ⬜ not started
 - Game page: player search, ruled-out players last and dimmed, injury report collapsed by severity
 - Fixes found with real data: game-script home-team precedence bug (favorite was reversed when the picks were on the home side), single-leg slips now grade exactly like their leg
 - ESPN endpoints are public but undocumented: fine for building and a beta; move to a licensed feed (e.g. SportsDataIO, Sportradar) before a large public launch
-- **Next:** add `ODDS_API_KEY`; NBA/MLB/NHL/NCAAF via the same ESPN pattern; automatic bet settlement from final box scores
+- The Odds API is live (key in `.env.local`): ~8 credits per game load, cached 3h per server instance; builds never spend credits (props skipped during prerender). Free tier ≈ 60 game loads/month — move to a paid tier or a shared cache before real traffic
+- **Next:** NBA/MLB/NHL/NCAAF via the same ESPN pattern; automatic bet settlement from final box scores
 
 ## Open decisions (need input)
 1. Supabase project URL + publishable key + service role key (blocks Phase 6+).

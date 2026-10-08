@@ -228,6 +228,9 @@ export class EspnSportsDataProvider implements SportsDataProvider {
 
   async getPlayerProps(gameId: string): Promise<MarketLine[]> {
     if (!this.odds) return [];
+    // Never spend odds credits while prerendering pages at build time; pages
+    // fetch props on the first real request instead.
+    if (process.env.NEXT_PHASE === "phase-production-build") return [];
     const game = await this.getGame(gameId);
     if (!game || game.status !== "scheduled") return [];
     const [home, away, players] = await Promise.all([this.getTeam(game.homeTeamId), this.getTeam(game.awayTeamId), this.getPlayersForGame(gameId)]);
