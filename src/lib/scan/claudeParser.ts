@@ -9,6 +9,8 @@ const INSTRUCTIONS = `Read this sportsbook bet slip screenshot and extract every
 - Copy names, prop categories and numbers exactly as printed. Do not correct, guess or fill in anything that isn't visible; use null instead.
 - "244+" means line 244 with direction "over". "Over 265.5" means line 265.5, "over". "Under" means "under". Scorer props like "Anytime TD" have line null and direction "yes".
 - Odds are American odds (e.g. -115, +140 as 140). Use null when a leg shows no odds.
+- The slip may be in Spanish or another language. Copy names and prop categories in the original language (e.g. "YDS DE RECEPCIÓN", "ACARREOS"); "Momio" means odds, "Entrada" means stake.
+- Numbers may use thousands separators ("+1,066" is 1066).
 - If the image is not a bet slip, set is_betslip to false and return no legs.`;
 
 let client: Anthropic | null = null;

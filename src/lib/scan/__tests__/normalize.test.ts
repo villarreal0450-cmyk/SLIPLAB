@@ -56,3 +56,42 @@ describe("normalizeSlip", () => {
     expect(oddMarket.issues[0]).toMatch(/Didn't recognize the prop/);
   });
 });
+
+describe("Spanish-language slips (Draftea / Caliente style)", () => {
+  it("maps Spanish market names, with or without accents", () => {
+    expect(matchMarket("YDS DE RECEPCIÓN")).toBe("receiving_yards");
+    expect(matchMarket("yds de recepcion")).toBe("receiving_yards");
+    expect(matchMarket("YDS DE PASE")).toBe("passing_yards");
+    expect(matchMarket("ACARREOS")).toBe("rushing_attempts");
+    expect(matchMarket("Yardas terrestres")).toBe("rushing_yards");
+    expect(matchMarket("Recepciones")).toBe("receptions");
+    expect(matchMarket("TDs de pase")).toBe("passing_tds");
+    expect(matchMarket("Anotador en cualquier momento")).toBe("anytime_td");
+    expect(matchMarket("Primer anotador")).toBeNull();
+    expect(matchMarket("Recepción más larga")).toBeNull();
+  });
+
+  it("reads the user's Draftea slip: initials match, unknown players are flagged", () => {
+    const slip: ParsedSlip = {
+      is_betslip: true,
+      sportsbook: "Draftea",
+      event: "Buccaneers vs Cowboys",
+      combined_odds: 1066,
+      stake: 125,
+      legs: [
+        { raw_text: "YDS DE RECEPCIÓN J. Williams DAL 16.0+", player: "J. Williams", team: "DAL", market: "YDS DE RECEPCIÓN", line: 16, direction: "over", odds: null },
+        { raw_text: "YDS DE PASE D. Prescott DAL 0.5+", player: "D. Prescott", team: "DAL", market: "YDS DE PASE", line: 0.5, direction: "over", odds: -250 },
+        { raw_text: "ACARREOS B. Irving TB 13.0+", player: "B. Irving", team: "TB", market: "ACARREOS", line: 13, direction: "over", odds: null },
+        { raw_text: "ACARREOS J. Daniels TB 7.0+", player: "J. Daniels", team: "TB", market: "ACARREOS", line: 7, direction: "over", odds: null },
+        { raw_text: "YDS DE RECEPCIÓN C. Godwin TB 30.0+", player: "C. Godwin", team: "TB", market: "YDS DE RECEPCIÓN", line: 30, direction: "over", odds: null },
+      ],
+    };
+    const legs = normalizeSlip(slip, catalog, newId);
+    expect(legs.map((l) => l.pick?.playerId ?? null)).toEqual(["javonte-williams", "dak-prescott", "bucky-irving", null, "chris-godwin"]);
+    expect(legs.map((l) => l.pick?.market ?? null)).toEqual(["receiving_yards", "passing_yards", "rushing_attempts", null, "receiving_yards"]);
+    expect(legs[1].pick?.odds).toBe(-250);
+    expect(legs[3].status).toBe("unmatched");
+    // Initials are a confident match, not a "by last name" guess.
+    expect(legs[0].issues.join(" ")).not.toMatch(/by last name/);
+  });
+});

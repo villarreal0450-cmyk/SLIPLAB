@@ -10,12 +10,31 @@ import type { CatalogGame, CatalogPlayer, NormalizedLeg, ParsedLeg, ParsedSlip }
  * inference shows up in `issues` and downgrades the leg to "review".
  */
 
+/**
+ * Market wording seen on US and Latin American books (DraftKings, FanDuel,
+ * Caliente, Draftea, Codere…). Matched against accent-free lowercase text.
+ * Order matters: specific phrases come before generic ones.
+ */
 const MARKET_SYNONYMS: [RegExp, MarketKey][] = [
-  [/anytime|to score|td scorer|touchdown scorer/, "anytime_td"],
+  // Touchdown scorer — EN / ES
+  [/anytime|to score|td scorer|touchdown scorer|anota(dor)?\b.*(cualquier|momento)|en cualquier momento|anotador/, "anytime_td"],
+  // Spanish yardage phrases ("YDS DE RECEPCION", "yardas por pase", "yardas terrestres")
+  [/(yds|yardas)\s*(de|por)\s*recepci/, "receiving_yards"],
+  [/(tds?|touchdowns?|anotaciones)\s*(de|por)\s*pase/, "passing_tds"],
+  [/(yds|yardas)\s*(de|por)\s*pase|yardas aereas/, "passing_yards"],
+  [/(yds|yardas)\s*(de\s*carrera|por\s*carrera|terrestres|por\s*tierra)/, "rushing_yards"],
+  [/acarreos|intentos de carrera/, "rushing_attempts"],
+  [/pases completos|completos/, "completions"],
+  [/recepciones/, "receptions"],
+  [/triples/, "threes"],
+  [/rebotes/, "rebounds"],
+  [/asistencias/, "assists"],
+  [/puntos/, "points"],
+  // English
   [/pass(ing)?\s*(yds|yards)/, "passing_yards"],
   [/pass(ing)?\s*(tds?|touchdowns?)/, "passing_tds"],
   [/completions?/, "completions"],
-  [/rush(ing)?\s*(att|attempts|carries)/, "rushing_attempts"],
+  [/rush(ing)?\s*(att|attempts|carries)|\bcarries\b/, "rushing_attempts"],
   [/rush(ing)?\s*(yds|yards)/, "rushing_yards"],
   [/rec(eiving)?\s*(yds|yards)/, "receiving_yards"],
   [/receptions?|\brec\b|catches/, "receptions"],
@@ -27,14 +46,22 @@ const MARKET_SYNONYMS: [RegExp, MarketKey][] = [
 
 /**
  * Variants that share words with supported markets but settle differently
- * ("Longest Reception", "First TD Scorer", "1st Half Passing Yards"). Checked
- * first so they are never mistaken for the base market.
+ * ("Longest Reception", "First TD Scorer", "1st Half Passing Yards",
+ * "Recepción más larga", "Primer anotador"). Checked first so they are never
+ * mistaken for the base market.
  */
-const UNSUPPORTED_VARIANTS = /longest|first|1st|2nd|last|half|quarter|\bq[1-4]\b|period|combined|\+\s*(rush|rec)|milestone/;
+const UNSUPPORTED_VARIANTS =
+  /longest|first|1st|2nd|last|half|quarter|\bq[1-4]\b|period|combined|\+\s*(rush|rec)|milestone|mas larg|primer|ultimo|mitad|cuarto|combinad/;
+
+const fold = (text: string) =>
+  text
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
 
 export function matchMarket(text: string | null): MarketKey | null {
   if (!text) return null;
-  const t = text.toLowerCase();
+  const t = fold(text);
   if (UNSUPPORTED_VARIANTS.test(t)) return null;
   return MARKET_SYNONYMS.find(([re]) => re.test(t))?.[1] ?? null;
 }
@@ -54,6 +81,18 @@ export function matchPlayer(name: string | null, players: CatalogPlayer[]): { pl
   const target = clean(name);
   const exact = players.find((p) => clean(p.name) === target);
   if (exact) return { player: exact, exact: true };
+
+  // "J. Williams" style (initial + last name), common on Latin American books.
+  const [first, ...rest] = target.split(" ");
+  if (first?.length === 1 && rest.length) {
+    const last = rest.join(" ");
+    const initialMatches = players.filter((p) => {
+      const parts = clean(p.name).split(" ");
+      return parts[0]?.[0] === first && parts.slice(1).join(" ") === last;
+    });
+    if (initialMatches.length === 1) return { player: initialMatches[0], exact: true };
+  }
+
   const byLast = players.filter((p) => clean(lastName(p.name)) === clean(lastName(name)));
   return byLast.length === 1 ? { player: byLast[0], exact: false } : null;
 }
