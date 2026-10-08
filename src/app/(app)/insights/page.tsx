@@ -1,14 +1,14 @@
-import { BarChart3 } from "lucide-react";
-import { EmptyState } from "@/components/feedback/EmptyState";
+import { StorageBadge } from "@/components/bets/StorageBadge";
+import { InsightsView } from "@/components/insights/InsightsView";
 import { PageHeader } from "@/components/layout/PageHeader";
 
 export const metadata = { title: "Insights" };
 
-export default function Page() {
+export default function InsightsPage() {
   return (
     <>
-      <PageHeader title="Insights" />
-      <EmptyState icon={<BarChart3 />} title="Insights is on the way" description="Hit rates by sport, market and leg count, plus patterns in how you bet." />
+      <PageHeader title="Insights" description="How your decisions have played out, and what to do more or less of." actions={<StorageBadge />} />
+      <InsightsView />
     </>
   );
 }

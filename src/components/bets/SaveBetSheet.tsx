@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useId, useState } from "react";
 import { cn } from "cn";
+import { ExposureNote } from "@/components/bankroll/ExposureNote";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { useBets } from "@/lib/bets/BetsProvider";
@@ -146,6 +147,10 @@ export function SaveBetSheet({ open, onOpenChange, picks, analysis }: SaveBetShe
               "Add a stake to see the potential return."
             )}
           </p>
+
+          <div className="-mt-2">
+            <ExposureNote stake={typeof stake === "number" ? stake : null} risk={analysis.riskLevel} />
+          </div>
 
           <fieldset>
             <legend className="mb-1.5 text-xs font-medium uppercase tracking-wide text-muted-foreground">

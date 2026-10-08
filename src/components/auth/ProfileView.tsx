@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { CloudUpload, LifeBuoy, LogOut, Smartphone, UserRound } from "lucide-react";
 import { useEffect, useState } from "react";
+import { BankrollCard } from "@/components/bankroll/BankrollCard";
 import { Button } from "@/components/ui/button";
 import { brand } from "@/config/brand";
 import { useAuth } from "@/lib/auth/AuthProvider";
@@ -93,6 +94,8 @@ export function ProfileView() {
         )}
         {moving === "error" && <p role="alert" className="text-sm text-negative">Some bets didn&apos;t move. Try again.</p>}
       </section>
+
+      <BankrollCard />
 
       <section className="surface flex flex-col gap-2 p-4 sm:p-5">
         <h2 className="flex items-center gap-2 font-semibold tracking-tight">

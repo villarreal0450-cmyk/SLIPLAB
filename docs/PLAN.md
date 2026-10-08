@@ -74,8 +74,12 @@ Status legend: ✅ done · 🔧 in progress · ⬜ not started
 - `/api/scan`: validates type/size, rate-limits vision calls
 - **To finish:** add `ANTHROPIC_API_KEY`, then test with real screenshots from a few books and tune the synonym list
 
-## Phase 9 — Insights, bankroll, autopsy ⬜
-- Insights dashboard, bankroll exposure warnings, process review categories
+## Phase 9 — Insights, bankroll, post-game autopsy ✅
+- Post-game review (`src/lib/bets/review.ts`): each settled leg judged on its pre-game grade separately from the result — Good read, Good process / bad result, Bad process, High-variance result (volatile markets, near misses within 10%) — with a bet-level headline that names the flagged weakest leg when it's the one that missed; recorded on the leg when it settles
+- Insights (`src/lib/insights/compute.ts`): record, bet and leg hit rates, average legs, staked/returned; hit rates by prop type, leg count, analyst grade, risk; process-vs-results counts; highlights (TD legs in losing parlays, best vs worst market, best vs worst leg count, how the analyst's grades held up, weakest-leg flags, variance vs mistakes) only when samples allow; every rate shows its count and small samples are marked
+- `/insights` with a clearly labelled sample-data preview when there are no settled bets (never written into the user's bets)
+- Bankroll (device): bankroll, unit size, warn-above %; Save bet shows units and share of bankroll, warns above the limit with a suggested exposure by risk (low 1u, medium 0.5u, high 0.25u), and flags stakes creeping up after recent losses; never blocks, never suggests staking more
+- **Later:** sync bankroll to `bankroll_settings` and materialize insights in `user_insights` once Supabase is live
 
 ## Phase 10 — Real sports data ⬜
 - First real `SportsDataProvider`, caching, live scores, automated settlement

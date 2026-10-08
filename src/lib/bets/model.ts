@@ -1,4 +1,5 @@
 import { americanToDecimal } from "@/lib/odds";
+import { reviewLeg } from "./review";
 import type { BetStatus, LegStatus, ParlayAnalysis, Pick, SavedBet, SavedLeg } from "@/lib/types";
 
 export type BetDetailsPatch = {
@@ -93,7 +94,11 @@ export function createSavedBet(input: NewBetInput): SavedBet {
 
 /** Apply a leg result and re-derive the bet's status and settlement time. */
 export function settleLeg(bet: SavedBet, legId: string, status: LegStatus, resultValue: number | null, now = new Date().toISOString()): SavedBet {
-  const legs = bet.legs.map((l) => (l.id === legId ? { ...l, status, resultValue } : l));
+  const legs = bet.legs.map((l) => {
+    if (l.id !== legId) return l;
+    const next = { ...l, status, resultValue };
+    return { ...next, processReview: reviewLeg(next)?.category ?? null };
+  });
   return withStatus({ ...bet, legs, updatedAt: now }, deriveStatus(bet.status, legs), now);
 }
 

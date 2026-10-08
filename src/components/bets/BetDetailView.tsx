@@ -20,6 +20,7 @@ import { useParlayDraft } from "@/lib/parlay/store";
 import type { SavedBet } from "@/lib/types";
 import { BetStatusBadge } from "./BetStatusBadge";
 import { LegResultRow } from "./LegResultRow";
+import { PostGameReview } from "./PostGameReview";
 
 export function BetDetailView({ betId, justSaved = false }: { betId: string; justSaved?: boolean }) {
   const { status, bets, saveBet, removeBet } = useBets();
@@ -137,6 +138,8 @@ export function BetDetailView({ betId, justSaved = false }: { betId: string; jus
             </p>
           )}
         </section>
+
+        <PostGameReview bet={bet} />
       </div>
 
       <div className="flex flex-col gap-4 lg:sticky lg:top-10">
