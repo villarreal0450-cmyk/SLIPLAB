@@ -3,6 +3,7 @@ import { defaultFactors } from "./factors";
 import { clamp, round1 } from "./math";
 import { projectPick } from "./projection";
 import type { ScoringFactor } from "./types";
+import { lastName } from "@/lib/format/names";
 
 /**
  * Map the weighted 0..1 factor mean onto the 0..10 analyst scale.
@@ -39,6 +40,19 @@ export function scorePick(ctx: PickContext, options: ScoreOptions = {}): PickAna
     .filter((r) => r.impact === "negative")
     .reverse()
     .map((r) => r.explanation);
+  // A skeptical analyst always has a counterpoint. If no factor is negative,
+  // surface the weakest one and the sample-size caveat rather than an empty list.
+  if (bearCase.length === 0) {
+    const weakest = sorted[sorted.length - 1];
+    if (weakest && weakest.score < 0.6 && weakest.key !== "market_volatility") bearCase.push(weakest.explanation);
+    const games = ctx.recentGames.length;
+    if (games > 0 && games < 8) {
+      bearCase.push(`Only ${games} games of data this season — a small sample that can overstate a hot start.`);
+    }
+    const def = MARKETS[ctx.pick.market];
+    if (def.volatility >= 0.45) bearCase.push(`${def.label} swings a lot game to game, so even a good read misses often.`);
+  }
+
   const riskFactors = results
     .filter((r) => r.impact === "negative" && r.key !== "market_volatility")
     .map((r) => r.label.toLowerCase());
@@ -72,7 +86,7 @@ export function scorePick(ctx: PickContext, options: ScoreOptions = {}): PickAna
 
 function buildSummary(ctx: PickContext, score: number, results: FactorResult[], projected: number | null): string {
   const def = MARKETS[ctx.pick.market];
-  const last = ctx.player.name.split(" ").slice(-1)[0];
+  const last = lastName(ctx.player.name);
   const top = [...results].sort((a, b) => b.score - a.score)[0];
   const worst = [...results].sort((a, b) => a.score - b.score)[0];
   const lineText = ctx.pick.line !== null ? `${ctx.pick.line}+ ${def.shortLabel.toLowerCase()}` : def.label.toLowerCase();

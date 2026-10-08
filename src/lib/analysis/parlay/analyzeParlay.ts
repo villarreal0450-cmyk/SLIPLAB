@@ -82,12 +82,21 @@ function findWeakestLeg(picks: PickAnalysis[], contexts: PickContext[]): Weakest
   if (picks.length < 2) return null;
   const weakest = [...picks].sort((a, b) => a.score - b.score)[0];
   const ctx = contexts.find((c) => c.pick.id === weakest.pickId);
-  const worstFactor = [...weakest.factors].sort((a, b) => a.score - b.score)[0];
+  // Market volatility is restated separately below, so look past it for the specific reason.
+  const specific = [...weakest.factors].filter((f) => f.key !== "market_volatility").sort((a, b) => a.score - b.score)[0];
   const def = ctx ? MARKETS[ctx.pick.market] : null;
-  const reason =
-    def && def.volatility >= 0.7
-      ? `${def.label} legs are inherently volatile${worstFactor ? ` — ${lower(worstFactor.explanation)}` : "."}`
-      : worstFactor?.explanation ?? "Lowest-scoring leg in the parlay.";
+
+  let reason: string;
+  if (def && def.volatility >= 0.7) {
+    const noun = def.key === "anytime_td" ? "Touchdowns" : `${def.label} props`;
+    const usage = weakest.factors.find((f) => f.key === "opportunity");
+    const rz = typeof usage?.evidence?.redZoneTouches === "number" ? usage.evidence.redZoneTouches : null;
+    const usageClause =
+      rz === null ? "" : rz >= 2.5 ? `, even with ${rz >= 3.5 ? "strong" : "decent"} red-zone usage (${rz.toFixed(1)} touches a game)` : ` and red-zone usage is thin (${rz.toFixed(1)} touches a game)`;
+    reason = `${noun} are inherently volatile${usageClause}. One play decides it.`;
+  } else {
+    reason = specific?.explanation ?? "Lowest-scoring leg in the parlay.";
+  }
   return { pickId: weakest.pickId, reason, actions: ["why", "replace", "make_safer"] };
 }
 
@@ -104,4 +113,3 @@ function buildSummary(picks: PickAnalysis[], contexts: PickContext[], cohesion: 
   return `${teamText} ${cohesionText}. ${strong} of ${picks.length} legs grade out as good or better.${weakText}`;
 }
 
-const lower = (s: string) => (s ? s[0].toLowerCase() + s.slice(1) : s);

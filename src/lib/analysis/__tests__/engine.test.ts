@@ -13,6 +13,9 @@ describe("scorePick", () => {
     expect(result.tier).toBe("strong");
     expect(result.factors.map((f) => f.key)).toContain("line_value");
     expect(result.bullCase.length).toBeGreaterThan(0);
+    // Even a strong pick gets a counterpoint.
+    expect(result.bearCase.length).toBeGreaterThan(0);
+    expect(result.factors.find((f) => f.key === "injuries")?.explanation).toContain("Winfield out");
     expect(result.projection?.value).toBeGreaterThan(244);
   });
 
@@ -22,6 +25,14 @@ describe("scorePick", () => {
     const line = result.factors.find((f) => f.key === "line_value");
     expect(line?.impact).toBe("negative");
     expect(result.score).toBeLessThan(8.5);
+  });
+
+  it("never lists a neutral-or-better factor in the bear case", async () => {
+    const ctx = await buildPickContext(javonteTd, provider);
+    const result = scorePick(ctx);
+    const negatives = result.factors.filter((f) => f.impact === "negative").map((f) => f.explanation);
+    expect(result.bearCase).toEqual(expect.arrayContaining(negatives));
+    expect(result.bearCase.some((t) => t.includes("decent scoring opportunity"))).toBe(false);
   });
 
   it("scores the anytime TD leg lowest", async () => {
@@ -56,9 +67,11 @@ describe("analyzeParlay", () => {
     expect(analysis.legCount).toBe(4);
     expect(analysis.score).toBeGreaterThan(6);
     expect(analysis.weakestLeg?.pickId).toBe("pick-javonte");
+    expect(analysis.weakestLeg?.reason).toMatch(/^Touchdowns are inherently volatile, even with decent red-zone usage/);
     expect(analysis.gameScripts).toHaveLength(1);
     expect(analysis.gameScripts[0].beats.length).toBeGreaterThanOrEqual(3);
     expect(analysis.gameScripts[0].helpedPickIds).toContain("pick-dak");
+    expect(analysis.gameScripts[0].breaker).toMatch(/Tampa Bay/);
     expect(analysis.combinedOdds).not.toBeNull();
     expect(analysis.dataSource.isMock).toBe(true);
     expect(["low", "medium", "high"]).toContain(analysis.riskLevel);

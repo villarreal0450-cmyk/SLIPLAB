@@ -1,6 +1,7 @@
 import type { Injury, MarketKey, Position } from "@/lib/types";
 import { clamp } from "../math";
 import { impactFor, type ScoringFactor } from "../types";
+import { lastName } from "@/lib/format/names";
 
 const STATUS_WEIGHT: Record<Injury["status"], number> = {
   out: 1,
@@ -9,6 +10,8 @@ const STATUS_WEIGHT: Record<Injury["status"], number> = {
   questionable: 0.35,
   probable: 0.1,
 };
+
+const PASS_MARKETS = new Set<MarketKey>(["passing_yards", "passing_tds", "completions", "receiving_yards", "receptions"]);
 
 /** Opponent positions whose absence helps a market. */
 function defendersFor(market: MarketKey): Position[] {
@@ -41,7 +44,7 @@ export const injuries: ScoringFactor = {
     const self = ctx.injuries.own.find((i) => i.playerId === ctx.pick.playerId);
     if (self) {
       adjustment -= STATUS_WEIGHT[self.status] * 0.5;
-      notes.push(`${ctx.player.name.split(" ").slice(-1)[0]} is ${self.status} (${self.description}).`);
+      notes.push(`${lastName(ctx.player.name)} is ${self.status} (${self.description}).`);
     }
 
     // Opponent defenders missing helps.
@@ -50,7 +53,7 @@ export const injuries: ScoringFactor = {
       const boost = Math.min(0.3, oppOut.reduce((acc, i) => acc + STATUS_WEIGHT[i.status] * 0.12, 0));
       adjustment += boost;
       notes.push(
-        `${ctx.opponent.city} secondary/front is banged up: ${oppOut.map((i) => `${i.playerName.split(" ").slice(-1)[0]} ${i.status}`).join(", ")}.`,
+        `${ctx.opponent.city}'s ${PASS_MARKETS.has(ctx.pick.market) ? "secondary" : "front seven"} is banged up: ${oppOut.map((i) => `${lastName(i.playerName)} ${i.status}`).join(", ")}.`,
       );
     }
 
@@ -63,7 +66,7 @@ export const injuries: ScoringFactor = {
     const ownOl = ctx.injuries.own.filter((i) => i.position === "OL");
     if (ownOl.length) {
       adjustment -= Math.min(0.15, ownOl.reduce((acc, i) => acc + STATUS_WEIGHT[i.status] * 0.08, 0));
-      notes.push(`Offensive line: ${ownOl.map((i) => `${i.playerName.split(" ").slice(-1)[0]} ${i.status}`).join(", ")}.`);
+      notes.push(`Offensive line: ${ownOl.map((i) => `${lastName(i.playerName)} ${i.status}`).join(", ")}.`);
     }
 
     const score = clamp(0.5 + adjustment);

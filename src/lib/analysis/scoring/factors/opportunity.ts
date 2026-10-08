@@ -56,7 +56,7 @@ export const opportunity: ScoringFactor = {
       const source = rz.length ? rz : tgt;
       if (!source.length) return null;
       const avg = mean(source);
-      const score = rz.length ? clamp((avg - 1) / 5) : clamp((avg - 4) / 8);
+      const score = rz.length ? clamp((avg - 1) / 4) : clamp((avg - 4) / 8); // 3 RZ touches/game = neutral
       const text = rz.length
         ? `${avg.toFixed(1)} red-zone touches per game — ${avg >= 3.5 ? "solid" : avg >= 2.5 ? "decent" : "thin"} scoring opportunity.`
         : `${avg.toFixed(1)} targets per game; scoring chances depend on red-zone looks.`;

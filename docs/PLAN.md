@@ -19,10 +19,15 @@ Status legend: ✅ done · 🔧 in progress · ⬜ not started
 - `/build` entry flow; kickoff times render in the viewer's timezone
 - `/analyze` is a placeholder until Phase 3
 
-## Phase 3 — Parlay analysis UI ⬜
-- `/analyze` hero screen: ParlayScore ring, cohesion, risk, legs, combined odds
-- PickCard (expandable), WeakestLegCard, GameScriptCard, CohesionMeter
-- Server action `analyzeParlay` + loading/empty/error states
+## Phase 3 — Parlay analysis UI ✅
+- `/analyze` runs the engine through a validated server function (`analyzeParlayAction`, zod schema) and re-runs when the slip changes, keeping the last result on screen while it reloads
+- Parlay score ring, structure label and summary; cohesion, risk and combined odds tiles
+- Weakest-leg card with "Why?" (expands and scrolls to the leg) and "Remove this leg"
+- Expandable pick cards: verdict, projection vs line, top-3 bull and bear cases, all factors on demand, missing-data notice, game-script effect
+- Game script tab with narrative beats, helped/hurt legs and a "What breaks it" scenario
+- Cohesion tab with meter and per-pair findings
+- Two-column desktop layout; loading, empty and error states
+- Engine copy fixes: suffix-aware names, no contradictory bear-case items, every pick gets a counterpoint
 
 ## Phase 4 — Pick breakdown ⬜
 - `/analyze/[pickId]`: PlayerHeader, tabs, key factors, projection chart, recent games, bull/bear, verdict

@@ -1,4 +1,5 @@
 import type { CorrelationFinding, PickContext } from "@/lib/types";
+import { lastName } from "@/lib/format/names";
 
 /**
  * A correlation rule inspects a pair of picks and returns a finding when the
@@ -17,7 +18,7 @@ const RUSHING = new Set(["rushing_yards", "rushing_attempts"]);
 const isOver = (c: PickContext) => c.pick.direction === "over" || c.pick.direction === "yes";
 const sameTeam = (a: PickContext, b: PickContext) => a.team.id === b.team.id;
 const sameGame = (a: PickContext, b: PickContext) => a.game.id === b.game.id;
-const last = (c: PickContext) => c.player.name.split(" ").slice(-1)[0];
+const last = (c: PickContext) => lastName(c.player.name);
 
 function finding(rule: CorrelationRule, a: PickContext, b: PickContext, type: CorrelationFinding["type"], strength: number, explanation: string): CorrelationFinding {
   return { pickIds: [a.pick.id, b.pick.id], type, strength, explanation, ruleKey: rule.key };

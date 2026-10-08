@@ -120,6 +120,8 @@ export type GameScript = {
   /** 0..1 how confident the engine is in this narrative. */
   confidence: number;
   summary: string;
+  /** The plausible alternative script that would sink the helped legs. */
+  breaker: string | null;
 };
 
 /* ---------- Parlay analysis ---------- */

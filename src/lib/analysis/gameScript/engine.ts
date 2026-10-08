@@ -43,6 +43,7 @@ export function buildGameScript(contexts: PickContext[]): GameScript | null {
       hurtPickIds: [...hurt],
       confidence: 0.35,
       summary: "Tight spread — no strong script lean.",
+      breaker: helped.size ? "A low-scoring, run-heavy game would undercut the passing legs." : null,
     };
   }
 
@@ -57,7 +58,11 @@ export function buildGameScript(contexts: PickContext[]): GameScript | null {
       ? `${favorite.city} builds a lead as the ${margin}-point favorite.`
       : `${favorite.city} is only a slight favorite, so the lead may never get comfortable.`,
   );
-  beats.push(`${underdog.city} is forced into higher passing volume to keep pace.`);
+  beats.push(
+    margin >= 3
+      ? `${underdog.city} is forced into higher passing volume to keep pace.`
+      : `${underdog.city} leans on the pass if ${favorite.city} scores early.`,
+  );
   if (margin >= 3) beats.push(`With a lead, ${favorite.city} shifts toward the run in the second half.`);
 
   for (const c of contexts) {
@@ -86,6 +91,12 @@ export function buildGameScript(contexts: PickContext[]): GameScript | null {
   }
 
   const confidence = Math.min(0.85, 0.4 + margin * 0.06 + (favStats ? 0.1 : 0));
+  const favLegsHelped = contexts.some((c) => c.team.id === favorite.id && helped.has(c.pick.id));
+  const breaker = !helped.size
+    ? null
+    : favLegsHelped
+      ? `If ${underdog.city} controls the clock and keeps ${favorite.city}'s offense off the field, the volume these legs need never shows up.`
+      : `If ${favorite.city} can't build a lead, ${underdog.city} never has to chase and the passing volume stays normal.`;
   return {
     gameId: game.id,
     beats,
@@ -93,5 +104,6 @@ export function buildGameScript(contexts: PickContext[]): GameScript | null {
     hurtPickIds: [...hurt],
     confidence,
     summary: `${favorite.city} controls the game${margin >= 3 ? " and runs late" : ""}; ${underdog.city} throws to catch up.`,
+    breaker,
   };
 }
