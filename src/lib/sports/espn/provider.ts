@@ -17,6 +17,7 @@ import {
   teamIdFor,
   type TeamLine,
 } from "./map";
+import { mapEspnPropBets, propBetsUrl, type EspnOddsList, type EspnPropBets } from "./props";
 import type { EspnAthlete, EspnEvent, EspnGameLog, EspnInjuries, EspnRoster, EspnScoreboard, EspnTeamRef, EspnTeamStatistics, EspnTeams } from "./types";
 
 /**
@@ -25,12 +26,15 @@ import type { EspnAthlete, EspnEvent, EspnGameLog, EspnInjuries, EspnRoster, Esp
  * undocumented, so every read is defensive and cached; swap in a licensed
  * feed before a large public launch.
  *
- * Player props come from an optional odds source (The Odds API). Without it,
- * props are empty and the app says no sportsbook line is loaded.
+ * Player props come from The Odds API when a key is set and it has credits
+ * (lines and prices). Otherwise they fall back to the sportsbook lines ESPN
+ * republishes for free (lines only, no prices). Players either source leaves
+ * out stay bettable with a line the user enters.
  */
 
 const SITE = "https://site.api.espn.com/apis/site/v2/sports/football/nfl";
 const WEB = "https://site.web.api.espn.com/apis/common/v3/sports/football/nfl";
+const CORE = "https://sports.core.api.espn.com/v2/sports/football/leagues/nfl";
 
 type TeamIndex = { teams: Team[]; byId: Map<string, Team>; espnIdByTeamId: Map<string, string>; abbrByEspnId: Map<string, string> };
 
@@ -224,21 +228,45 @@ export class EspnSportsDataProvider implements SportsDataProvider {
     };
   }
 
-  /* ---------- props (optional odds source) ---------- */
+  /* ---------- props ---------- */
 
   async getPlayerProps(gameId: string): Promise<MarketLine[]> {
-    if (!this.odds) return [];
-    // Never spend odds credits while prerendering pages at build time; pages
-    // fetch props on the first real request instead.
+    // Never spend odds credits or hammer ESPN while prerendering pages at build
+    // time; pages fetch props on the first real request instead.
     if (process.env.NEXT_PHASE === "phase-production-build") return [];
     const game = await this.getGame(gameId);
     if (!game || game.status !== "scheduled") return [];
-    const [home, away, players] = await Promise.all([this.getTeam(game.homeTeamId), this.getTeam(game.awayTeamId), this.getPlayersForGame(gameId)]);
+
+    const [priced, espn] = await Promise.all([this.pricedProps(game), this.espnProps(gameId)]);
+    // Priced lines win; ESPN's lines fill in any player and market the odds source left out.
+    const have = new Set(priced.map((m) => `${m.playerId}:${m.market}`));
+    return [...priced, ...espn.filter((m) => !have.has(`${m.playerId}:${m.market}`))];
+  }
+
+  /** Lines with prices from The Odds API, or [] when it isn't configured, is out of credits or fails. */
+  private async pricedProps(game: Game): Promise<MarketLine[]> {
+    if (!this.odds) return [];
+    const [home, away, players] = await Promise.all([this.getTeam(game.homeTeamId), this.getTeam(game.awayTeamId), this.getPlayersForGame(game.id)]);
     if (!home || !away) return [];
     try {
-      return await this.odds.propsForGame(gameId, game.startsAt, home, away, players);
+      return await this.odds.propsForGame(game.id, game.startsAt, home, away, players);
     } catch (error) {
-      console.error("Player props unavailable", error);
+      console.warn(`Priced player props unavailable, using ESPN lines: ${error instanceof Error ? error.message : String(error)}`);
+      return [];
+    }
+  }
+
+  /** Free sportsbook lines (no prices) that ESPN republishes. */
+  private async espnProps(gameId: string): Promise<MarketLine[]> {
+    const eventId = eventIdOf(gameId);
+    if (!eventId) return [];
+    try {
+      const list = await this.get<EspnOddsList>(`${CORE}/events/${eventId}/competitions/${eventId}/odds?lang=en&region=us`, 30 * MINUTE);
+      const source = propBetsUrl(list);
+      if (!source) return [];
+      return mapEspnPropBets(await this.get<EspnPropBets>(source.url, 30 * MINUTE), gameId);
+    } catch (error) {
+      console.warn(`ESPN player props unavailable: ${error instanceof Error ? error.message : String(error)}`);
       return [];
     }
   }

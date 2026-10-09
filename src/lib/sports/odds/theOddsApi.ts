@@ -44,6 +44,13 @@ const norm = (s: string) =>
     .replace(/\s+/g, " ")
     .trim();
 
+/**
+ * Once the plan runs out of credits (or the key is rejected), stop calling for
+ * a while instead of failing on every page load. Callers fall back to free lines.
+ */
+const PAUSE_MS = 6 * HOUR;
+let pausedUntil = 0;
+
 export class TheOddsApi {
   constructor(
     private readonly apiKey: string,
@@ -62,6 +69,7 @@ export class TheOddsApi {
 
   /** Props for one game, matched to the roster we already have. Returns [] when the book hasn't posted any. */
   async propsForGame(gameId: string, startsAt: string, home: Team, away: Team, players: Player[]): Promise<MarketLine[]> {
+    if (Date.now() < pausedUntil) return [];
     const events = await this.events();
     const homeName = norm(`${home.city} ${home.name}`);
     const awayName = norm(`${away.city} ${away.name}`);
@@ -79,6 +87,10 @@ export class TheOddsApi {
         onResponse: (res) => {
           const left = res.headers.get("x-requests-remaining");
           if (left !== null && Number(left) < 50) console.warn(`The Odds API: ${left} credits left this month`);
+          if (res.status === 401 || res.status === 429 || (left !== null && Number(left) <= 0)) {
+            pausedUntil = Date.now() + PAUSE_MS;
+            console.warn("The Odds API is out of credits or rejected the key; using free lines for the next 6 hours.");
+          }
         },
       },
     );

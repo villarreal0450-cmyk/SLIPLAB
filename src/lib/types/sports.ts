@@ -353,7 +353,8 @@ export type MarketLine = {
   market: MarketKey;
   /** Consensus line (e.g. 265.5). Null for yes/no markets. */
   line: number | null;
-  overOdds: number; // American odds
+  /** American odds. NaN when the source posts the line without a price (ESPN's free sportsbook feed). */
+  overOdds: number;
   underOdds: number;
   /** Alternate lines the book offers, ascending. */
   alternates?: { line: number; overOdds: number; underOdds: number }[];

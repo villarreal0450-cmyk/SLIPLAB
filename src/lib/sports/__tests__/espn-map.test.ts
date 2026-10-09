@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { mapEspnPropBets, propBetsUrl } from "@/lib/sports/espn/props";
 import type { Player } from "@/lib/types";
 import { mapEvent, mapGameLog, mapInjuries, mapOdds, mapPosition, seasonAverages } from "../espn/map";
 import type { EspnEvent } from "../espn/types";
@@ -111,5 +112,41 @@ describe("The Odds API parsing", () => {
     expect(td).toMatchObject({ playerId: "espn-2", overOdds: 210 });
     expect(Number.isNaN(td.underOdds)).toBe(true);
     expect(lines).toHaveLength(2);
+  });
+});
+
+describe("ESPN sportsbook props", () => {
+  const ref = (id: string) => ({ $ref: `http://sports.core.api.espn.com/v2/sports/football/leagues/nfl/seasons/2026/athletes/${id}?lang=en` });
+
+  it("finds the book that publishes props and asks for every one", () => {
+    const found = propBetsUrl({
+      items: [
+        { provider: { id: "58", name: "ESPN BET" } },
+        { provider: { id: "100", name: "Draft Kings" }, propBets: { $ref: "http://sports.core.api.espn.com/v2/x/odds/100/propBets?lang=en&region=us" } },
+      ],
+    });
+    expect(found?.book).toBe("Draft Kings");
+    expect(found?.url).toMatch(/^https:\/\/.*propBets\?.*limit=1000/);
+    expect(propBetsUrl({ items: [{ provider: { id: "58" } }] })).toBeNull();
+  });
+
+  it("maps full-game totals to lines without prices, once per player and market", () => {
+    const lines = mapEspnPropBets(
+      {
+        items: [
+          { athlete: ref("2577417"), type: { name: "Total Passing Yards (incl. overtime)" }, current: { target: { value: 271.5 } } },
+          { athlete: ref("2577417"), type: { name: "Total Passing Yards (incl. overtime)" }, current: { target: { value: 271.5 } } },
+          { athlete: ref("4241389"), type: { name: "Total Receptions (incl. overtime)" }, current: { target: { value: 6.5 } } },
+          { athlete: ref("4241389"), type: { name: "1st Half Total Receiving Yards" }, current: { target: { value: 40.5 } } },
+          { athlete: ref("4241389"), type: { name: "Anytime Touchdown Scorer" }, current: {} },
+          { type: { name: "Team Total Points" }, current: { target: { value: 24.5 } } },
+        ],
+      },
+      "espn-401872980",
+    );
+    expect(lines).toHaveLength(2);
+    expect(lines[0]).toMatchObject({ playerId: "espn-2577417", gameId: "espn-401872980", market: "passing_yards", line: 271.5 });
+    expect(lines[1]).toMatchObject({ playerId: "espn-4241389", market: "receptions", line: 6.5 });
+    expect(Number.isNaN(lines[0].overOdds)).toBe(true);
   });
 });
