@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { connection } from "next/server";
 import { Suspense } from "react";
 import { GameBuilder } from "@/components/builder/GameBuilder";
 import { SkeletonList } from "@/components/feedback/SkeletonList";
@@ -7,7 +8,7 @@ import { GameHeader } from "@/components/games/GameHeader";
 import { InjuryReport } from "@/components/games/InjuryReport";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Skeleton } from "@/components/ui/skeleton";
-import { listGameIds, loadGameBoard } from "@/lib/sports/queries";
+import { listGameIds, loadGameBoard, loadSlate } from "@/lib/sports/queries";
 
 export async function generateStaticParams() {
   const ids = await listGameIds();
@@ -16,8 +17,13 @@ export async function generateStaticParams() {
 
 export async function generateMetadata({ params }: PageProps<"/games/[gameId]">): Promise<Metadata> {
   const { gameId } = await params;
-  const board = await loadGameBoard(gameId);
-  return { title: board ? `${board.away.abbreviation} @ ${board.home.abbreviation}` : "Game" };
+  // The title only needs the matchup, so read it from the slate rather than
+  // loading the whole board (and its prop lines) at build time.
+  const { games, teams } = await loadSlate();
+  const game = games.find((g) => g.id === gameId);
+  const away = game && teams[game.awayTeamId];
+  const home = game && teams[game.homeTeamId];
+  return { title: away && home ? `${away.abbreviation} @ ${home.abbreviation}` : "Game" };
 }
 
 export default function GamePage({ params }: PageProps<"/games/[gameId]">) {
@@ -32,6 +38,9 @@ export default function GamePage({ params }: PageProps<"/games/[gameId]">) {
 }
 
 async function GameContent({ params }: { params: PageProps<"/games/[gameId]">["params"] }) {
+  // Lines, injuries and odds move all week: build the board on each visit
+  // (from a few-minutes cache) instead of serving a copy made at deploy time.
+  await connection();
   const { gameId } = await params;
   const board = await loadGameBoard(gameId);
   if (!board) notFound();

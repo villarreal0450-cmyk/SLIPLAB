@@ -16,7 +16,8 @@ export type SlateData = {
 
 export async function loadSlate(): Promise<SlateData> {
   "use cache";
-  cacheLife("minutes");
+  // Refresh within five minutes and never serve a slate older than 30.
+  cacheLife({ stale: 60, revalidate: 5 * 60, expire: 30 * 60 });
   const provider = getSportsDataProvider();
   const sportKeys = Object.keys(SPORTS) as SportKey[];
   const [games, teamLists] = await Promise.all([
@@ -31,6 +32,14 @@ export async function loadSlate(): Promise<SlateData> {
     teams,
     isMock: provider.info.isMock,
   };
+}
+
+/** A game this long past kickoff is over even if a cached slate still says otherwise. */
+const GAME_LENGTH_MS = 4.5 * 60 * 60 * 1000;
+
+/** Drop games that must be over by now. Call at request time only. */
+export function withoutFinishedGames(games: Game[], now = Date.now()): Game[] {
+  return games.filter((g) => Date.parse(g.startsAt) + GAME_LENGTH_MS > now);
 }
 
 export type BoardPlayer = {
@@ -66,7 +75,7 @@ const unavailable = (p: BoardPlayer) => (p.injury && (p.injury.status === "out" 
 /** Everything the pick builder needs for one game. Null when the game doesn't exist. */
 export async function loadGameBoard(gameId: string): Promise<GameBoard | null> {
   "use cache";
-  cacheLife("minutes");
+  cacheLife({ stale: 60, revalidate: 5 * 60, expire: 30 * 60 });
   const provider = getSportsDataProvider();
   const game = await provider.getGame(gameId);
   if (!game) return null;

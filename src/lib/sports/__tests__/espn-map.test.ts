@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { mapEspnPropBets, propBetsUrl } from "@/lib/sports/espn/props";
+import { nextWeekOf } from "@/lib/sports/espn/provider";
 import type { Player } from "@/lib/types";
 import { mapEvent, mapGameLog, mapInjuries, mapOdds, mapPosition, seasonAverages } from "../espn/map";
 import type { EspnEvent } from "../espn/types";
@@ -148,5 +149,23 @@ describe("ESPN sportsbook props", () => {
     expect(lines[0]).toMatchObject({ playerId: "espn-2577417", gameId: "espn-401872980", market: "passing_yards", line: 271.5 });
     expect(lines[1]).toMatchObject({ playerId: "espn-4241389", market: "receptions", line: 6.5 });
     expect(Number.isNaN(lines[0].overOdds)).toBe(true);
+  });
+});
+
+describe("nextWeekOf", () => {
+  const ev = (state: "pre" | "in" | "post") => ({ id: "1", date: "2026-10-12T00:00Z", status: { type: { state } } });
+
+  it("moves on once every game of the week is over", () => {
+    expect(nextWeekOf({ week: { number: 5 }, season: { type: 2 }, events: [ev("post"), ev("post")] })).toEqual({ seasonType: 2, week: 6 });
+  });
+
+  it("stays on the week while any game is still to play or in progress", () => {
+    expect(nextWeekOf({ week: { number: 5 }, season: { type: 2 }, events: [ev("post"), ev("pre")] })).toBeNull();
+    expect(nextWeekOf({ week: { number: 5 }, season: { type: 2 }, events: [ev("post"), ev("in")] })).toBeNull();
+  });
+
+  it("rolls from the last regular-season week into the playoffs", () => {
+    expect(nextWeekOf({ week: { number: 18 }, season: { type: 2 }, events: [ev("post")] })).toEqual({ seasonType: 3, week: 1 });
+    expect(nextWeekOf({ week: { number: 5 }, season: { type: 3 }, events: [ev("post")] })).toBeNull();
   });
 });

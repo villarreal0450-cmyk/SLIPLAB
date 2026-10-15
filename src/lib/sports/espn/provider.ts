@@ -79,7 +79,18 @@ export class EspnSportsDataProvider implements SportsDataProvider {
   /* ---------- schedule ---------- */
 
   private async slate(): Promise<{ games: Game[]; odds: Map<string, GameOdds> }> {
-    const sb = await this.get<EspnScoreboard>(`${SITE}/scoreboard`, 5 * MINUTE);
+    let sb = await this.get<EspnScoreboard>(`${SITE}/scoreboard`, 5 * MINUTE);
+    // ESPN keeps showing a finished week until midweek. Once every game in it
+    // is over (usually after Monday night), load the next week right away.
+    const next = nextWeekOf(sb);
+    if (next) {
+      try {
+        const upcoming = await this.get<EspnScoreboard>(`${SITE}/scoreboard?seasontype=${next.seasonType}&week=${next.week}`, 5 * MINUTE);
+        if (upcoming.events?.length) sb = upcoming;
+      } catch {
+        // Keep the finished week; it is filtered out downstream.
+      }
+    }
     const games: Game[] = [];
     const odds = new Map<string, GameOdds>();
     for (const e of sb.events ?? []) {
@@ -274,4 +285,20 @@ export class EspnSportsDataProvider implements SportsDataProvider {
   async getMarketLine(playerId: string, gameId: string, market: MarketKey) {
     return (await this.getPlayerProps(gameId)).find((m) => m.playerId === playerId && m.market === market) ?? null;
   }
+}
+
+/**
+ * The week after ESPN's current one, but only when every game in the current
+ * week is over. Regular season is season type 2 (18 weeks); the playoffs are
+ * type 3. Returns null mid-week or when the season has ended.
+ */
+export function nextWeekOf(sb: EspnScoreboard): { seasonType: number; week: number } | null {
+  const events = sb.events ?? [];
+  const week = sb.week?.number;
+  const type = sb.season?.type;
+  if (!events.length || !week || !type) return null;
+  if (!events.every((e) => e.status?.type?.state === "post")) return null;
+  if (type === 2) return week < 18 ? { seasonType: 2, week: week + 1 } : { seasonType: 3, week: 1 };
+  if (type === 3 && week < 5) return { seasonType: 3, week: week + 1 };
+  return null;
 }
