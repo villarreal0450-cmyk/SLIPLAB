@@ -1,4 +1,4 @@
-import type { CorrelationFinding, PickContext } from "@/lib/types";
+import { MARKETS, type CorrelationFinding, type PickContext } from "@/lib/types";
 import { lastName } from "@/lib/format/names";
 
 /**
@@ -19,6 +19,7 @@ const isOver = (c: PickContext) => c.pick.direction === "over" || c.pick.directi
 const sameTeam = (a: PickContext, b: PickContext) => a.team.id === b.team.id;
 const sameGame = (a: PickContext, b: PickContext) => a.game.id === b.game.id;
 const last = (c: PickContext) => lastName(c.player.name);
+const statOf = (c: PickContext) => MARKETS[c.pick.market].label.toLowerCase();
 
 function finding(rule: CorrelationRule, a: PickContext, b: PickContext, type: CorrelationFinding["type"], strength: number, explanation: string): CorrelationFinding {
   return { pickIds: [a.pick.id, b.pick.id], type, strength, explanation, ruleKey: rule.key };
@@ -34,7 +35,7 @@ const qbReceiverStack: CorrelationRule = {
     if (isOver(qb) !== isOver(wr)) {
       return finding(this, a, b, "negative", -0.5, `${last(qb)} ${qb.pick.direction} and ${last(wr)} ${wr.pick.direction} pull in opposite directions.`);
     }
-    return finding(this, a, b, "positive", 0.6, `${last(qb)}'s passing yards and ${last(wr)}'s receiving yards come from the same throws — if one hits, the other is more likely to.`);
+    return finding(this, a, b, "positive", 0.6, `${last(qb)}'s ${statOf(qb)} and ${last(wr)}'s ${statOf(wr)} come from the same throws — if one hits, the other is more likely to.`);
   },
 };
 

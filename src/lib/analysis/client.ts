@@ -1,6 +1,6 @@
 import type { Pick } from "@/lib/types";
 import type { AlternativesMode } from "./suggestions/alternatives";
-import type { AlternativesResult, AnalyzeResult, BreakdownResult, ImproveResult } from "./results";
+import type { AlternativesResult, AnalyzeResult, BreakdownResult, GamePicksResult, ImproveResult } from "./results";
 
 /**
  * Browser-side callers for the analysis API. Analysis is a read, so it goes
@@ -53,6 +53,17 @@ export async function fetchSuggestions(picks: Pick[], signal?: AbortSignal): Pro
 export async function fetchLegAlternatives(pickId: string, mode: AlternativesMode, picks: Pick[], signal?: AbortSignal): Promise<AlternativesResult> {
   try {
     return await post<AlternativesResult>("/api/analysis/alternatives", { pickId, mode, picks }, signal);
+  } catch (error) {
+    if (signal?.aborted) throw error;
+    return { ok: false, error: NETWORK_ERROR };
+  }
+}
+
+export async function fetchGamePicks(gameId: string, signal?: AbortSignal): Promise<GamePicksResult> {
+  try {
+    const res = await fetch(`/api/analysis/game-picks?gameId=${encodeURIComponent(gameId)}`, { signal });
+    if (!res.ok && res.status !== 404) throw new Error(`HTTP ${res.status}`);
+    return (await res.json()) as GamePicksResult;
   } catch (error) {
     if (signal?.aborted) throw error;
     return { ok: false, error: NETWORK_ERROR };

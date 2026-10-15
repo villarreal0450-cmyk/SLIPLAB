@@ -1,13 +1,14 @@
 import "server-only";
 
+import { cacheLife } from "next/cache";
 import { parseParlayInput } from "@/lib/parlay/schema";
 import { getSportsDataProvider } from "@/lib/sports";
 import type { Team } from "@/lib/types";
 import { buildPickBreakdown } from "./breakdown";
 import { buildPickContext, PickContextError } from "./context/buildPickContext";
 import { analyzeParlayFromContexts } from "./parlay/analyzeParlay";
-import type { AlternativesResult, AnalyzeResult, BreakdownResult, ImproveResult } from "./results";
-import { buildLegAlternatives, buildSuggestions, loadCandidates } from "./suggestions";
+import type { AlternativesResult, AnalyzeResult, BreakdownResult, GamePicksResult, ImproveResult } from "./results";
+import { buildGamePicks, buildLegAlternatives, buildSuggestions, loadCandidates } from "./suggestions";
 import { toProjected } from "./suggestions/workspace";
 
 /**
@@ -106,4 +107,31 @@ export async function runAlternatives(input: unknown): Promise<AlternativesResul
     console.error("runAlternatives failed", error);
     return { ok: false, error: "Options didn't load. Try again in a moment." };
   }
+}
+
+const GAME_ID = /^[a-z0-9-]{1,64}$/;
+
+/** The analyst's own picks for one game. Validates the id, then serves a short-lived cached build. */
+export async function runGamePicks(gameId: unknown): Promise<GamePicksResult> {
+  if (typeof gameId !== "string" || !GAME_ID.test(gameId)) return { ok: false, error: "That game couldn't be found." };
+  try {
+    return await gamePicksFor(gameId);
+  } catch (error) {
+    console.error("runGamePicks failed", error);
+    return { ok: false, error: "The analyst couldn't finish this game. Try again in a moment." };
+  }
+}
+
+async function gamePicksFor(gameId: string): Promise<GamePicksResult> {
+  "use cache";
+  // Lines and injuries move during the week; a few minutes of reuse is plenty.
+  cacheLife({ stale: 60, revalidate: 5 * 60, expire: 30 * 60 });
+  const provider = getSportsDataProvider();
+  const game = await provider.getGame(gameId);
+  if (!game) return { ok: false, error: "That game couldn't be found." };
+  if (game.status !== "scheduled") {
+    return { ok: true, picks: { status: "no_lines", reason: "This game has already kicked off, so its pregame lines are gone. Pick an upcoming game." }, dataSource: provider.info };
+  }
+  const candidates = await loadCandidates([gameId], provider);
+  return { ok: true, picks: buildGamePicks(candidates), dataSource: provider.info };
 }

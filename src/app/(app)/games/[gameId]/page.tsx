@@ -5,6 +5,7 @@ import { Suspense } from "react";
 import { GameBuilder } from "@/components/builder/GameBuilder";
 import { SkeletonList } from "@/components/feedback/SkeletonList";
 import { GameHeader } from "@/components/games/GameHeader";
+import { GamePicksCard } from "@/components/games/GamePicksCard";
 import { InjuryReport } from "@/components/games/InjuryReport";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -49,6 +50,7 @@ async function GameContent({ params }: { params: PageProps<"/games/[gameId]">["p
     <div className="flex flex-col gap-6 lg:grid lg:grid-cols-[minmax(0,1fr)_320px] lg:items-start lg:gap-8">
       <div className="flex flex-col gap-6">
         <GameHeader board={board} />
+        {board.game.status === "scheduled" && <GamePicksCard gameId={board.game.id} />}
         <div className="lg:hidden">
           <InjuryReport injuries={board.injuries} teams={[board.away, board.home]} />
         </div>

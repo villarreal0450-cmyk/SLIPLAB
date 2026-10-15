@@ -1,5 +1,6 @@
 import type { DataSourceInfo, LegAlternative, ParlayAnalysis, ParlaySuggestion, ProjectedOutcome } from "@/lib/types";
 import type { PickBreakdown } from "./breakdown";
+import type { GamePicks } from "./suggestions/gamePicks";
 
 /** Response shapes shared by the analysis API routes and their client callers. */
 
@@ -17,4 +18,8 @@ export type ImproveResult =
 
 export type AlternativesResult =
   | { ok: true; options: LegAlternative[] }
+  | { ok: false; error: string };
+
+export type GamePicksResult =
+  | { ok: true; picks: GamePicks; dataSource: DataSourceInfo }
   | { ok: false; error: string };
