@@ -1,4 +1,4 @@
-import type { MarketKey, MarketLine, Player, Team } from "@/lib/types";
+import type { MarketKey, MarketLine, Player, SportKey, Team } from "@/lib/types";
 import { fetchJson, HOUR } from "../http";
 
 /**
@@ -9,9 +9,9 @@ import { fetchJson, HOUR } from "../http";
  * cached for 3 hours, so the free tier lasts.
  */
 
-const BASE = "https://api.the-odds-api.com/v4/sports/americanfootball_nfl";
+const ROOT = "https://api.the-odds-api.com/v4/sports";
 
-const MARKETS: Record<string, MarketKey> = {
+const FOOTBALL: Record<string, MarketKey> = {
   player_pass_yds: "passing_yards",
   player_pass_tds: "passing_tds",
   player_pass_completions: "completions",
@@ -21,12 +21,56 @@ const MARKETS: Record<string, MarketKey> = {
   player_receptions: "receptions",
   player_anytime_td: "anytime_td",
 };
-const ALTERNATES: Record<string, MarketKey> = {
+const FOOTBALL_ALTERNATES: Record<string, MarketKey> = {
   player_pass_yds_alternate: "passing_yards",
   player_rush_yds_alternate: "rushing_yards",
   player_reception_yds_alternate: "receiving_yards",
   player_receptions_alternate: "receptions",
 };
+
+/** The Odds API sport key and market keys for each league we cover. */
+const LEAGUES: Record<SportKey, { key: string; markets: Record<string, MarketKey>; alternates: Record<string, MarketKey> }> = {
+  nfl: { key: "americanfootball_nfl", markets: FOOTBALL, alternates: FOOTBALL_ALTERNATES },
+  ncaaf: { key: "americanfootball_ncaaf", markets: FOOTBALL, alternates: FOOTBALL_ALTERNATES },
+  nba: {
+    key: "basketball_nba",
+    markets: {
+      player_points: "points",
+      player_rebounds: "rebounds",
+      player_assists: "assists",
+      player_threes: "threes",
+      player_points_rebounds_assists: "pra",
+      player_points_rebounds: "points_rebounds",
+      player_points_assists: "points_assists",
+      player_rebounds_assists: "rebounds_assists",
+      player_steals: "steals",
+      player_blocks: "blocks",
+    },
+    alternates: { player_points_alternate: "points", player_rebounds_alternate: "rebounds", player_assists_alternate: "assists", player_threes_alternate: "threes" },
+  },
+  nhl: {
+    key: "icehockey_nhl",
+    markets: { player_points: "nhl_points", player_assists: "nhl_assists", player_goals: "goals", player_shots_on_goal: "shots_on_goal", player_total_saves: "saves" },
+    alternates: {},
+  },
+  mlb: {
+    key: "baseball_mlb",
+    markets: {
+      batter_hits: "hits",
+      batter_total_bases: "total_bases",
+      batter_home_runs: "home_runs",
+      batter_rbis: "rbis",
+      batter_runs_scored: "runs",
+      batter_hits_runs_rbis: "hits_runs_rbis",
+      pitcher_strikeouts: "pitcher_strikeouts",
+      pitcher_hits_allowed: "hits_allowed",
+      pitcher_earned_runs: "earned_runs",
+      pitcher_outs: "outs_recorded",
+    },
+    alternates: {},
+  },
+};
+
 /** First book that prices a player's market wins; this order sets preference. */
 const BOOKS = ["draftkings", "fanduel", "betmgm", "williamhill_us", "espnbet"];
 
@@ -57,20 +101,21 @@ export class TheOddsApi {
     private readonly includeAlternates = false,
   ) {}
 
-  private url(path: string, params: Record<string, string> = {}) {
+  private url(sport: SportKey, path: string, params: Record<string, string> = {}) {
     const q = new URLSearchParams({ ...params, apiKey: this.apiKey });
-    return `${BASE}${path}?${q}`;
+    return `${ROOT}/${LEAGUES[sport].key}${path}?${q}`;
   }
 
-  private async events(): Promise<OddsEvent[]> {
+  private async events(sport: SportKey): Promise<OddsEvent[]> {
     // Free endpoint; refresh hourly.
-    return fetchJson<OddsEvent[]>(this.url("/events"), { ttlMs: HOUR, key: `${BASE}/events` });
+    return fetchJson<OddsEvent[]>(this.url(sport, "/events"), { ttlMs: HOUR, key: `${ROOT}/${LEAGUES[sport].key}/events` });
   }
 
   /** Props for one game, matched to the roster we already have. Returns [] when the book hasn't posted any. */
-  async propsForGame(gameId: string, startsAt: string, home: Team, away: Team, players: Player[]): Promise<MarketLine[]> {
+  async propsForGame(sport: SportKey, gameId: string, startsAt: string, home: Team, away: Team, players: Player[]): Promise<MarketLine[]> {
     if (Date.now() < pausedUntil) return [];
-    const events = await this.events();
+    const league = LEAGUES[sport];
+    const events = await this.events(sport);
     const homeName = norm(`${home.city} ${home.name}`);
     const awayName = norm(`${away.city} ${away.name}`);
     const event = events.find(
@@ -78,12 +123,12 @@ export class TheOddsApi {
     );
     if (!event) return [];
 
-    const keys = [...Object.keys(MARKETS), ...(this.includeAlternates ? Object.keys(ALTERNATES) : [])];
+    const keys = [...Object.keys(league.markets), ...(this.includeAlternates ? Object.keys(league.alternates) : [])];
     const odds = await fetchJson<EventOdds>(
-      this.url(`/events/${event.id}/odds`, { regions: "us", markets: keys.join(","), oddsFormat: "american", bookmakers: BOOKS.join(",") }),
+      this.url(sport, `/events/${event.id}/odds`, { regions: "us", markets: keys.join(","), oddsFormat: "american", bookmakers: BOOKS.join(",") }),
       {
         ttlMs: 3 * HOUR,
-        key: `${BASE}/events/${event.id}/odds:${keys.join(",")}`,
+        key: `${ROOT}/${league.key}/events/${event.id}/odds:${keys.join(",")}`,
         onResponse: (res) => {
           const left = res.headers.get("x-requests-remaining");
           if (left !== null && Number(left) < 50) console.warn(`The Odds API: ${left} credits left this month`);
@@ -94,12 +139,13 @@ export class TheOddsApi {
         },
       },
     );
-    return toMarketLines(odds, gameId, players);
+    return toMarketLines(odds, gameId, players, sport);
   }
 }
 
 /** Pure: bookmaker outcomes → one MarketLine per player + market (exported for tests). */
-export function toMarketLines(odds: EventOdds, gameId: string, players: Player[]): MarketLine[] {
+export function toMarketLines(odds: EventOdds, gameId: string, players: Player[], sport: SportKey = "nfl"): MarketLine[] {
+  const { markets: MARKETS, alternates: ALTERNATES } = LEAGUES[sport];
   const byName = new Map(players.map((p) => [norm(p.name), p]));
   const lines = new Map<string, MarketLine>();
   const books = [...(odds.bookmakers ?? [])].sort((a, b) => rank(a.key) - rank(b.key));

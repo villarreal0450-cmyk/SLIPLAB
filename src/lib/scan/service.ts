@@ -3,7 +3,7 @@ import "server-only";
 import { isClaudeConfigured } from "@/lib/analyst/claude";
 import { getSportsDataProvider } from "@/lib/sports";
 import { claudeParser } from "./claudeParser";
-import { buildCatalog, normalizeSlip } from "./normalize";
+import { buildCatalog, normalizeSlip, sportsForSlip } from "./normalize";
 import { sampleParser } from "./sample";
 import type { ScanResult, SlipImage } from "./types";
 
@@ -48,7 +48,8 @@ export async function runScan(input: unknown): Promise<ScanResult> {
     if (!slip.is_betslip || slip.legs.length === 0) {
       return { ok: false, reason: "not_a_slip", error: "That doesn't look like a bet slip. Try a clearer screenshot of the slip itself." };
     }
-    const catalog = await buildCatalog(getSportsDataProvider());
+    const teamHints = [...slip.legs.map((l) => l.team), ...(slip.event ? slip.event.split(/\s+(?:@|vs\.?|v)\s+/i) : [])].filter((t): t is string => Boolean(t));
+    const catalog = await buildCatalog(getSportsDataProvider(), { sports: sportsForSlip(slip), teamHints });
     const legs = normalizeSlip(slip, catalog, () => crypto.randomUUID());
     return { ok: true, source: parser.source, slip, legs, catalog };
   } catch (error) {

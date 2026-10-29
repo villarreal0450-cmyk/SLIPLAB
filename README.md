@@ -25,9 +25,13 @@ npm run dev
 
 Without any keys the app runs fully in demo mode:
 
-- Sports data comes from ESPN (live NFL schedule, rosters, injuries, stats; no key).
-  Add `ODDS_API_KEY` (the-odds-api.com) for sportsbook lines and player props;
-  without it every player is still bettable and you enter the line from your slip.
+- Sports data comes from ESPN for the NFL, college football, NBA, NHL and MLB
+  (schedules, rosters, injuries, stats and free sportsbook lines; no key).
+  Add `ODDS_API_KEY` (the-odds-api.com) for prices and more books; without it
+  lines come from ESPN, and any player without one is still bettable with the
+  line from your slip.
+- With `ANTHROPIC_API_KEY`, each pick's News tab can run web research (latest
+  news, why recent games went the way they did, expert projections, with sources).
   Set `SPORTS_DATA_PROVIDER=mock` for the labelled offline demo data.
 - Bets are saved in the browser. Add Supabase keys to sync them to an account.
 - The analyst chat uses the rule-based analyst. Add `ANTHROPIC_API_KEY` to have

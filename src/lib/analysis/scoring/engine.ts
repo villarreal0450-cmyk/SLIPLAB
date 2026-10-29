@@ -59,6 +59,7 @@ export function scorePick(ctx: PickContext, options: ScoreOptions = {}): PickAna
   const missingData: string[] = [];
 
   for (const factor of factors) {
+    if (factor.appliesTo && !factor.appliesTo(ctx)) continue;
     const r = factor.evaluate(ctx);
     if (r) results.push(r);
     else missingData.push(factor.label);

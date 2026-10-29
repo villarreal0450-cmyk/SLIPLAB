@@ -38,8 +38,14 @@ export function UpcomingGamesClient({ data }: { data: SlateData }) {
       {games.length === 0 ? (
         <EmptyState
           icon={<CalendarX2 />}
-          title={`No ${data.sports.find((s) => s.key === sport)?.label ?? ""} games loaded`}
-          description={data.isMock ? "Demo data only covers the NFL slate for now." : "Only the NFL is connected so far. More leagues are coming."}
+          title={`No ${data.sports.find((s) => s.key === sport)?.label ?? ""} games coming up`}
+          description={
+            data.isMock
+              ? "Demo data only covers the NFL slate."
+              : sport === "nfl" || sport === "ncaaf"
+                ? "Nothing left this week. The next week's games show up as soon as this one ends."
+                : "Nothing scheduled in the next three days. The league may be between games or out of season."
+          }
           className="py-10"
         />
       ) : (

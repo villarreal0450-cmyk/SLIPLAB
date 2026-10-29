@@ -27,7 +27,8 @@ export type EspnEvent = {
   status?: { type?: { state?: "pre" | "in" | "post"; name?: string; completed?: boolean } };
   competitions?: {
     venue?: { fullName?: string; indoor?: boolean };
-    competitors?: { homeAway: "home" | "away"; score?: string; team: EspnTeamRef }[];
+    status?: { type?: { state?: "pre" | "in" | "post"; name?: string } };
+    competitors?: { homeAway: "home" | "away"; score?: string | { value?: number }; team: EspnTeamRef }[];
     odds?: {
       provider?: { name?: string };
       details?: string;
@@ -70,6 +71,8 @@ export type EspnInjuries = {
 export type EspnGameLog = {
   names?: string[];
   events?: Record<string, { gameDate?: string; atVs?: string; opponent?: { id?: string; abbreviation?: string } }>;
+  /** Present on some logs: which season this is. */
+  season?: { year?: number };
   seasonTypes?: { displayName?: string; categories?: { events?: { eventId: string; stats: string[] }[] }[] }[];
 };
 

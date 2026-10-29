@@ -22,7 +22,8 @@ describe("buildPickBreakdown", () => {
     expect(b!.recentGames.map((g) => g.opponentAbbr)).toEqual(["WAS", "CHI", "NYG", "LV", "HOU"]);
     expect(b!.hitRate).toEqual({ hits: 4, games: 5 });
     expect(b!.usage?.label).toBe("Pass attempts");
-    expect(b!.defense?.focus).toBe("pass");
+    expect(b!.defense?.rows[0]).toMatchObject({ key: "passYardsAllowed", focus: true });
+    expect(b!.defense?.title).toBe("Tampa Bay defense");
     expect(b!.game.spread).toBe(-2.5);
     expect(b!.correlations.length).toBeGreaterThan(0);
   });
@@ -30,7 +31,7 @@ describe("buildPickBreakdown", () => {
   it("grades yes/no markets by whether the event happened", async () => {
     const b = await breakdownFor("pick-javonte");
     expect(b!.recentGames.map((g) => g.hit)).toEqual([false, false, true, false, true]);
-    expect(b!.defense?.focus).toBe("run");
+    expect(b!.defense?.rows[0]).toMatchObject({ key: "rushTdsAllowed", focus: true });
   });
 
   it("returns null for an unknown pick", async () => {

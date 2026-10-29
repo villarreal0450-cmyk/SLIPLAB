@@ -11,6 +11,8 @@ const INSTRUCTIONS = `Read this sportsbook bet slip screenshot and extract every
 - Odds are American odds (e.g. -115, +140 as 140). Use null when a leg shows no odds.
 - The slip may be in Spanish or another language. Copy names and prop categories in the original language (e.g. "YDS DE RECEPCIÓN", "ACARREOS"); "Momio" means odds, "Entrada" means stake.
 - Numbers may use thousands separators ("+1,066" is 1066).
+- Slips can be for the NFL, college football (ncaaf), NBA, NHL or MLB. Set each leg's sport when the teams, players or prop types make it clear; otherwise null.
+- Spanish prop names you may see: "Puntos", "Rebotes", "Asistencias", "Triples", "Goles", "Tiros a gol", "Atajadas", "Imparables" (hits), "Ponches" (strikeouts), "Carreras impulsadas" (RBIs), "Bases totales", "Jonrón". Copy them as printed.
 - If the image is not a bet slip, set is_betslip to false and return no legs.`;
 
 let client: Anthropic | null = null;

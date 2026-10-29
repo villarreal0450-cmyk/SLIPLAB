@@ -1,4 +1,5 @@
 import type { ScoringFactor } from "../types";
+import { expertProjection } from "./expertProjection";
 import { gameEnvironment } from "./gameEnvironment";
 import { injuries } from "./injuries";
 import { lineValue } from "./lineValue";
@@ -12,6 +13,7 @@ import { seasonBaseline } from "./seasonBaseline";
 export const defaultFactors: readonly ScoringFactor[] = [
   recentForm,
   seasonBaseline,
+  expertProjection,
   matchup,
   opportunity,
   lineValue,

@@ -58,6 +58,9 @@ export function buildGamePicks(candidates: Candidate[]): GamePicks {
   for (const { pick, ctx } of candidates) {
     const own = ctx.injuries.own.find((i) => i.playerId === pick.playerId);
     if (own && UNAVAILABLE.has(own.status)) continue;
+    // Milestone rungs ("2+ goals") aren't balanced lines: one side is priced
+    // like a near-lock, so "the safe side" is never the smart side to recommend.
+    if (ctx.marketLine?.milestone) continue;
 
     const sides: Pick[] = [pick];
     if (MARKETS[pick.market].kind === "over_under" && pick.line !== null) {
@@ -133,7 +136,13 @@ export function buildGamePicks(candidates: Candidate[]): GamePicks {
   }));
   const beat = current.gameScripts[0]?.beats.find((b) => [...teams].some((t) => b.includes(t)));
   const story = [
-    ...current.cohesion.findings.filter((f) => f.strength > 0 && f.pickIds.every((id) => ids.has(id))).map((f) => f.explanation),
+    // The two strongest links are enough; three variations of one idea read as padding.
+    ...current.cohesion.findings
+      .filter((f) => f.strength > 0 && f.pickIds.every((id) => ids.has(id)))
+      .sort((a, b) => b.strength - a.strength)
+      .filter((f, i, all) => all.findIndex((g) => g.ruleKey === f.ruleKey) === i || i < 1)
+      .slice(0, 2)
+      .map((f) => f.explanation),
     ...(beat ? [beat] : []),
   ];
 

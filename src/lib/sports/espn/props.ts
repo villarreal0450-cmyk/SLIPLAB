@@ -1,4 +1,6 @@
 import type { MarketKey, MarketLine } from "@/lib/types";
+import { playerIdFor } from "./ids";
+import type { LeagueSpec } from "./leagues";
 
 /**
  * ESPN's core API republishes one sportsbook's player props (DraftKings at the
@@ -12,6 +14,7 @@ export type EspnOddsList = {
 };
 
 export type EspnPropBets = {
+  pageCount?: number;
   items?: {
     athlete?: { $ref?: string };
     type?: { name?: string };
@@ -20,46 +23,52 @@ export type EspnPropBets = {
   }[];
 };
 
-/** ESPN prop type name → our market. Full-game totals only; halves, quarters and milestones are skipped. */
-const PROP_TYPES: Record<string, MarketKey> = {
-  "Total Passing Yards (incl. overtime)": "passing_yards",
-  "Total Pass Completions (incl. overtime)": "completions",
-  "Total Passing Touchdowns (incl. overtime)": "passing_tds",
-  "Total Rushing Yards (incl. overtime)": "rushing_yards",
-  "Total Carries (incl. overtime)": "rushing_attempts",
-  "Total Receiving Yards (incl. overtime)": "receiving_yards",
-  "Total Receptions (incl. overtime)": "receptions",
-};
-
-/** The first sportsbook in the odds list that publishes player props, as an https URL listing all of them. */
-export function propBetsUrl(list: EspnOddsList): { url: string; book: string } | null {
+/** The first sportsbook in the odds list that publishes player props, as an https URL for one page of them. */
+export function propBetsUrl(list: EspnOddsList, page = 1): { url: string; book: string } | null {
   const item = list.items?.find((i) => i.propBets?.$ref);
   if (!item?.propBets?.$ref) return null;
   const url = new URL(item.propBets.$ref.replace(/^http:/, "https:"));
   url.searchParams.set("limit", "1000");
+  if (page > 1) url.searchParams.set("page", String(page));
   return { url: url.toString(), book: item.provider?.name ?? "sportsbook" };
 }
 
-/** Pure: ESPN prop bets → one priceless MarketLine per player and market (exported for tests). */
-export function mapEspnPropBets(data: EspnPropBets, gameId: string): MarketLine[] {
+/**
+ * Pure: ESPN prop bets → one priceless MarketLine per player and market.
+ * Full-game totals win; an "N or more" milestone fills in when the book posts
+ * no total for that market (its lowest rung becomes an N − 0.5 line).
+ */
+export function mapEspnPropBets(spec: LeagueSpec, data: EspnPropBets, gameId: string): MarketLine[] {
   const lines = new Map<string, MarketLine>();
+  const milestones = new Map<string, { playerId: string; market: MarketKey; target: number; updatedAt: string }>();
+
   for (const item of data.items ?? []) {
-    const market = PROP_TYPES[item.type?.name ?? ""];
+    const name = item.type?.name ?? "";
     const athleteId = item.athlete?.$ref?.match(/athletes\/(\d+)/)?.[1];
-    const line = item.current?.target?.value;
-    if (!market || !athleteId || typeof line !== "number" || !Number.isFinite(line)) continue;
-    const playerId = `espn-${athleteId}`;
-    const key = `${playerId}:${market}`;
-    if (lines.has(key)) continue; // ESPN lists each prop twice, once per side.
-    lines.set(key, {
-      playerId,
-      gameId,
-      market,
-      line,
-      overOdds: Number.NaN,
-      underOdds: Number.NaN,
-      updatedAt: item.lastUpdated ?? "",
-    });
+    const target = item.current?.target?.value;
+    if (!athleteId || typeof target !== "number" || !Number.isFinite(target)) continue;
+    const playerId = playerIdFor(spec.sport, athleteId);
+
+    const market = spec.propTypes[name];
+    if (market) {
+      const key = `${playerId}:${market}`;
+      if (lines.has(key)) continue; // ESPN lists each total twice, once per side.
+      lines.set(key, { playerId, gameId, market, line: target, overOdds: Number.NaN, underOdds: Number.NaN, updatedAt: item.lastUpdated ?? "" });
+      continue;
+    }
+    const milestone = spec.milestoneTypes[name];
+    if (milestone) {
+      const key = `${playerId}:${milestone}`;
+      const prev = milestones.get(key);
+      if (!prev || target < prev.target) milestones.set(key, { playerId, market: milestone, target, updatedAt: item.lastUpdated ?? "" });
+    }
+  }
+
+  for (const [key, m] of milestones) {
+    if (lines.has(key)) continue;
+    const line = Number.isInteger(m.target) ? m.target - 0.5 : m.target;
+    if (line <= 0) continue;
+    lines.set(key, { playerId: m.playerId, gameId, market: m.market, line, overOdds: Number.NaN, underOdds: Number.NaN, updatedAt: m.updatedAt, milestone: true });
   }
   return [...lines.values()];
 }

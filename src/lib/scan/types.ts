@@ -1,5 +1,5 @@
 import { z } from "zod";
-import type { Direction, MarketKey, Pick } from "@/lib/types";
+import type { Direction, MarketKey, Pick, SportKey } from "@/lib/types";
 
 /**
  * What a parser reads off a betslip image, before any matching to our data.
@@ -14,6 +14,10 @@ export const parsedLegSchema = z.object({
   line: z.number().nullable().describe("Numeric line, e.g. 244 for '244+' or 265.5 for 'Over 265.5'; null for yes/no props"),
   direction: z.enum(["over", "under", "yes", "no"]).nullable().describe("'over' for N+ or Over, 'under' for Under, 'yes' for scorer props"),
   odds: z.number().nullable().describe("American odds for this leg if printed, e.g. -115 or 140"),
+  sport: z
+    .enum(["nfl", "ncaaf", "nba", "nhl", "mlb"])
+    .nullable()
+    .describe("League of this leg if you can tell from the slip, the teams or the prop type (college football is ncaaf); null if unsure"),
 });
 
 export const parsedSlipSchema = z.object({
@@ -51,6 +55,7 @@ export type CatalogMarket = {
 };
 export type CatalogPlayer = {
   id: string;
+  sport: SportKey;
   name: string;
   position: string;
   teamId: string;

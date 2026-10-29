@@ -1,5 +1,5 @@
-import type { Injury, MarketKey, Position } from "@/lib/types";
-import { clamp } from "../math";
+import { isFootball, type Injury, type MarketKey, type Position } from "@/lib/types";
+import { clamp, directionSign } from "../math";
 import { impactFor, type ScoringFactor } from "../types";
 import { lastName } from "@/lib/format/names";
 
@@ -29,6 +29,8 @@ function defendersFor(market: MarketKey): Position[] {
   }
 }
 
+const USAGE_MARKETS = new Set<MarketKey>(["points", "assists", "threes", "pra", "points_rebounds", "points_assists", "rebounds", "rebounds_assists"]);
+
 export const injuries: ScoringFactor = {
   key: "injuries",
   label: "Injuries",
@@ -36,12 +38,14 @@ export const injuries: ScoringFactor = {
   evaluate(ctx) {
     const defenders = defendersFor(ctx.pick.market);
     const notes: string[] = [];
+    // `risk` hurts any pick on this player; `adjustment` describes volume for the over.
+    let risk = 0;
     let adjustment = 0;
 
     // Player's own status is the biggest risk.
     const self = ctx.injuries.own.find((i) => i.playerId === ctx.pick.playerId);
     if (self) {
-      adjustment -= STATUS_WEIGHT[self.status] * 0.5;
+      risk -= STATUS_WEIGHT[self.status] * 0.5;
       notes.push(`${lastName(ctx.player.name)} is ${self.status} (${self.description}).`);
     }
 
@@ -55,19 +59,29 @@ export const injuries: ScoringFactor = {
       );
     }
 
+    // Basketball: a teammate in street clothes frees up shots and touches.
+    if (ctx.player.sport === "nba" && USAGE_MARKETS.has(ctx.pick.market)) {
+      const outMates = ctx.injuries.own.filter((i) => i.playerId !== ctx.pick.playerId && (i.status === "out" || i.status === "ir" || i.status === "doubtful"));
+      if (outMates.length) {
+        adjustment += Math.min(0.2, outMates.length * 0.06);
+        notes.push(`${outMates.slice(0, 3).map((i) => lastName(i.playerName)).join(", ")} ${outMates.length === 1 ? "is" : "are"} out for ${ctx.team.city}, which frees up usage.`);
+      }
+    }
+
     // Own-team QB or offensive line issues hurt everyone on offense.
-    const ownQb = ctx.injuries.own.find((i) => i.position === "QB" && i.playerId !== ctx.pick.playerId);
+    const football = isFootball(ctx.player.sport);
+    const ownQb = football ? ctx.injuries.own.find((i) => i.position === "QB" && i.playerId !== ctx.pick.playerId) : undefined;
     if (ownQb) {
       adjustment -= STATUS_WEIGHT[ownQb.status] * 0.3;
       notes.push(`Own QB ${ownQb.playerName} is ${ownQb.status}.`);
     }
-    const ownOl = ctx.injuries.own.filter((i) => i.position === "OL");
+    const ownOl = football ? ctx.injuries.own.filter((i) => i.position === "OL") : [];
     if (ownOl.length) {
       adjustment -= Math.min(0.15, ownOl.reduce((acc, i) => acc + STATUS_WEIGHT[i.status] * 0.08, 0));
       notes.push(`Offensive line: ${ownOl.map((i) => `${lastName(i.playerName)} ${i.status}`).join(", ")}.`);
     }
 
-    const score = clamp(0.5 + adjustment);
+    const score = clamp(0.5 + risk + adjustment * directionSign(ctx.pick.direction));
     return {
       key: this.key,
       label: this.label,

@@ -1,17 +1,15 @@
-import { Newspaper } from "lucide-react";
 import { InjuryTag } from "@/components/games/InjuryTag";
+import { ResearchCard } from "./ResearchCard";
 import type { PickBreakdown } from "@/lib/analysis";
 
 const when = (iso: string) => new Date(iso).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
 
-/**
- * There is no news feed yet, so this shows the injury updates we do have and
- * says plainly that broader news isn't connected.
- */
+/** On-demand web research first, then the official injury updates for both teams. */
 export function NewsPanel({ breakdown: b }: { breakdown: PickBreakdown }) {
   const updates = [...b.injuries.own, ...b.injuries.opponent].sort((a, c) => c.updatedAt.localeCompare(a.updatedAt));
   return (
     <div className="flex flex-col gap-3">
+      <ResearchCard pick={b.pick} />
       {updates.length > 0 ? (
         <ul className="flex flex-col gap-2.5">
           {updates.map((u) => (
@@ -30,10 +28,6 @@ export function NewsPanel({ breakdown: b }: { breakdown: PickBreakdown }) {
       ) : (
         <p className="surface p-5 text-sm text-muted-foreground">No injury updates for either team.</p>
       )}
-      <p className="flex items-start gap-2 text-xs leading-relaxed text-muted-foreground">
-        <Newspaper className="mt-0.5 size-3.5 shrink-0" aria-hidden="true" />
-        Only injury reports are connected right now. Beat-writer news, depth-chart changes and practice notes arrive with a live data provider.
-      </p>
     </div>
   );
 }

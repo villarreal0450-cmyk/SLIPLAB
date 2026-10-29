@@ -1,5 +1,6 @@
 import type {
   DataSourceInfo,
+  ExpertProjection,
   Game,
   GameOdds,
   Injury,
@@ -44,4 +45,7 @@ export interface SportsDataProvider {
   getPlayerProps(gameId: string): Promise<MarketLine[]>;
   getMarketLine(playerId: string, gameId: string, market: MarketKey): Promise<MarketLine | null>;
   getGameOdds(gameId: string): Promise<GameOdds | null>;
+
+  /** Professional projection for a player in a game, when the source publishes one (optional). */
+  getExpertProjection?(playerId: string, gameId: string): Promise<ExpertProjection | null>;
 }

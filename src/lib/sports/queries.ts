@@ -1,5 +1,5 @@
 import { cacheLife } from "next/cache";
-import { DEFAULT_MARKETS_BY_POSITION, SPORTS, unpricedMarket, type Game, type GameOdds, type Injury, type MarketLine, type Player, type SportKey, type Team } from "@/lib/types";
+import { defaultMarketsFor, SPORTS, unpricedMarket, type Game, type GameOdds, type Injury, type MarketLine, type Player, type SportKey, type Team } from "@/lib/types";
 import { getSportsDataProvider } from ".";
 
 /**
@@ -20,21 +20,21 @@ export async function loadSlate(): Promise<SlateData> {
   cacheLife({ stale: 60, revalidate: 5 * 60, expire: 30 * 60 });
   const provider = getSportsDataProvider();
   const sportKeys = Object.keys(SPORTS) as SportKey[];
-  const [games, teamLists] = await Promise.all([
-    provider.getGames(),
-    Promise.all(sportKeys.map((s) => provider.getTeams(s))),
-  ]);
+  const all = (await provider.getGames()).filter((g) => g.status !== "final");
+  const playing = new Set(all.flatMap((g) => [g.homeTeamId, g.awayTeamId]));
+  const teamLists = await Promise.all(sportKeys.map((s) => provider.getTeams(s)));
+  // Only the teams on the slate: college football alone has hundreds.
   const teams: Record<string, Team> = {};
-  for (const t of teamLists.flat()) teams[t.id] = t;
+  for (const t of teamLists.flat()) if (playing.has(t.id)) teams[t.id] = t;
   return {
     sports: sportKeys.map((key) => ({ key, label: SPORTS[key].label })),
-    games: games.filter((g) => g.status !== "final"),
+    games: all,
     teams,
     isMock: provider.info.isMock,
   };
 }
 
-/** A game this long past kickoff is over even if a cached slate still says otherwise. */
+/** A game this long past its start is over even if a cached slate still says otherwise. */
 const GAME_LENGTH_MS = 4.5 * 60 * 60 * 1000;
 
 /** Drop games that must be over by now. Call at request time only. */
@@ -67,7 +67,18 @@ export type GameBoard = {
   priced: boolean;
 };
 
-const POSITION_ORDER = ["QB", "RB", "WR", "TE"];
+/** Roster order on the board, per sport: the positions that carry the most props first. */
+const POSITION_ORDER: Record<SportKey, string[]> = {
+  nfl: ["QB", "RB", "WR", "TE"],
+  ncaaf: ["QB", "RB", "WR", "TE"],
+  nba: ["PG", "G", "SG", "SF", "F", "PF", "C"],
+  nhl: ["C", "LW", "RW", "F", "D", "G"],
+  mlb: ["SP", "C", "IF", "OF", "DH", "RP"],
+};
+const positionRank = (p: Player) => {
+  const i = POSITION_ORDER[p.sport].indexOf(p.position);
+  return i < 0 ? 99 : i;
+};
 const unquoted = (p: BoardPlayer) => (p.props.some((m) => m.priced !== false) ? 0 : 1);
 /** Players who won't play sink to the bottom; you can still find them. */
 const unavailable = (p: BoardPlayer) => (p.injury && (p.injury.status === "out" || p.injury.status === "ir") ? 1 : 0);
@@ -101,7 +112,7 @@ export async function loadGameBoard(gameId: string): Promise<GameBoard | null> {
         const quoted = props.filter((m) => m.playerId === player.id);
         const quotedKeys = new Set(quoted.map((m) => m.market));
         // Every skill player is bettable: quoted markets first, then the usual markets for the position.
-        const defaults = (DEFAULT_MARKETS_BY_POSITION[player.position] ?? [])
+        const defaults = defaultMarketsFor(player.sport, player.position)
           .filter((k) => !quotedKeys.has(k))
           .map((k) => unpricedMarket(player.id, game.id, k));
         return { player, injury: injuries.find((i) => i.playerId === player.id) ?? null, props: [...quoted, ...defaults] };
@@ -111,7 +122,7 @@ export async function loadGameBoard(gameId: string): Promise<GameBoard | null> {
       .sort(
         (a, b) =>
           unavailable(a) - unavailable(b) ||
-          POSITION_ORDER.indexOf(a.player.position) - POSITION_ORDER.indexOf(b.player.position) ||
+          positionRank(a.player) - positionRank(b.player) ||
           unquoted(a) - unquoted(b) ||
           a.player.name.localeCompare(b.player.name),
       ),

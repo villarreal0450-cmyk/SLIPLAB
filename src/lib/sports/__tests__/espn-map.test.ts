@@ -2,7 +2,10 @@ import { describe, expect, it } from "vitest";
 import { mapEspnPropBets, propBetsUrl } from "@/lib/sports/espn/props";
 import { nextWeekOf } from "@/lib/sports/espn/provider";
 import type { Player } from "@/lib/types";
+import { LEAGUES } from "../espn/leagues";
 import { mapEvent, mapGameLog, mapInjuries, mapOdds, mapPosition, seasonAverages } from "../espn/map";
+
+const NFL = LEAGUES.nfl;
 import type { EspnEvent } from "../espn/types";
 import { toMarketLines } from "../odds/theOddsApi";
 
@@ -26,23 +29,24 @@ const event = (details: string): EspnEvent => ({
 
 describe("ESPN mapping", () => {
   it("maps games, teams and the spread from the home side", () => {
-    const m = mapEvent(event("DAL -9.5"))!;
+    const m = mapEvent(NFL, event("DAL -9.5"))!;
     expect(m.game).toMatchObject({ id: "espn-401", homeTeamId: "nfl-dal", awayTeamId: "nfl-tb", status: "scheduled", week: 5 });
     expect(m.game.weather).toMatchObject({ isDome: true, windMph: null, conditions: "Sunny" });
     expect(m.teams[0]).toMatchObject({ abbreviation: "DAL", city: "Dallas", color: "#002a5c" });
     expect(m.odds).toMatchObject({ homeSpread: -9.5, total: 48.5 });
-    expect(mapOdds(event("TB -3"), "DAL")?.homeSpread).toBe(3);
+    expect(mapOdds(NFL, event("TB -3"), "DAL")?.homeSpread).toBe(3);
   });
 
   it("maps positions, including defenders for injuries", () => {
-    expect(mapPosition("FB")).toBe("RB");
-    expect(mapPosition("OT")).toBe("OL");
-    expect(mapPosition("SS")).toBe("S");
-    expect(mapPosition("XYZ")).toBe("DEF");
+    expect(mapPosition(NFL, "FB")).toBe("RB");
+    expect(mapPosition(NFL, "OT")).toBe("OL");
+    expect(mapPosition(NFL, "SS")).toBe("S");
+    expect(mapPosition(NFL, "XYZ")).toBe("DEF");
   });
 
   it("reads game logs by stat name and counts touchdowns", () => {
     const logs = mapGameLog(
+      NFL,
       "espn-1",
       {
         names: ["receptions", "receivingTargets", "receivingYards", "receivingTouchdowns", "rushingAttempts", "rushingTouchdowns"],
@@ -60,6 +64,7 @@ describe("ESPN mapping", () => {
 
   it("maps injury statuses and player ids from links", () => {
     const injuries = mapInjuries(
+      NFL,
       {
         injuries: [
           {
@@ -71,7 +76,7 @@ describe("ESPN mapping", () => {
           },
         ],
       },
-      new Map([["27", "TB"]]),
+      new Map([["27", "nfl-tb"]]),
     );
     expect(injuries.map((i) => [i.playerId, i.teamId, i.position, i.status])).toEqual([
       ["espn-4362087", "nfl-tb", "S", "out"],
@@ -133,6 +138,7 @@ describe("ESPN sportsbook props", () => {
 
   it("maps full-game totals to lines without prices, once per player and market", () => {
     const lines = mapEspnPropBets(
+      NFL,
       {
         items: [
           { athlete: ref("2577417"), type: { name: "Total Passing Yards (incl. overtime)" }, current: { target: { value: 271.5 } } },

@@ -30,13 +30,15 @@ export const seasonBaseline: ScoringFactor = {
     const marginRatio = ((avg - line) / line) * directionSign(ctx.pick.direction);
     const score = clamp(0.5 + clamp(marginRatio, -0.35, 0.35) * 1.3);
     const relation = avg > line ? "above" : avg < line ? "below" : "right at";
+    const blended = ctx.seasonStats?.lastSeasonGames;
+    const label = blended ? `Average over this season and last (${blended} games from last season, since this season is short)` : "Season average";
     return {
       key: this.key,
       label: this.label,
       score,
       weight: this.weight,
       impact: impactFor(score),
-      explanation: `Season average of ${Math.round(avg * 10) / 10} ${def.unit} sits ${relation} the ${line} line.`,
+      explanation: `${label} of ${Math.round(avg * 10) / 10} ${def.unit} sits ${relation} the ${line} line.`,
       evidence: { seasonAverage: avg, line, gamesPlayed: ctx.seasonStats?.gamesPlayed ?? null },
     };
   },

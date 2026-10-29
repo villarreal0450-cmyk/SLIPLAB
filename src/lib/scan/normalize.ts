@@ -1,7 +1,7 @@
 import { lastName } from "@/lib/format/names";
 import { marketOddsFor } from "@/lib/parlay/marketMath";
 import type { SportsDataProvider } from "@/lib/sports/provider";
-import { DEFAULT_MARKETS_BY_POSITION, MARKETS, type Direction, type MarketKey, type Pick } from "@/lib/types";
+import { defaultMarketsFor, MARKETS, type Direction, type MarketKey, type Pick, type SportKey } from "@/lib/types";
 import type { CatalogGame, CatalogPlayer, NormalizedLeg, ParsedLeg, ParsedSlip } from "./types";
 
 /**
@@ -17,7 +17,27 @@ import type { CatalogGame, CatalogPlayer, NormalizedLeg, ParsedLeg, ParsedSlip }
  */
 const MARKET_SYNONYMS: [RegExp, MarketKey][] = [
   // Touchdown scorer — EN / ES
-  [/anytime|to score|td scorer|touchdown scorer|anota(dor)?\b.*(cualquier|momento)|en cualquier momento|anotador/, "anytime_td"],
+  [/anytime\s*(td|touchdown)|to score a (td|touchdown)|td scorer|touchdown scorer|anota(dor)?\b.*(cualquier|momento)|en cualquier momento|anotador de touchdown/, "anytime_td"],
+  // Basketball combos come before their parts — EN / ES
+  [/\bpra\b|pts\s*\+\s*reb\s*\+\s*ast|points,?\s*rebounds,?\s*(and|&|\+)?\s*assists|puntos\s*(\+|,)?\s*rebotes\s*(\+|y|,)\s*asistencias/, "pra"],
+  [/pts\s*\+\s*reb|points\s*(\+|and|&)\s*rebounds|puntos\s*(\+|y)\s*rebotes/, "points_rebounds"],
+  [/pts\s*\+\s*ast|points\s*(\+|and|&)\s*assists|puntos\s*(\+|y)\s*asistencias/, "points_assists"],
+  [/reb(ounds)?\s*(\+|and|&)\s*ast|rebotes\s*(\+|y)\s*asistencias/, "rebounds_assists"],
+  // Baseball — EN / ES (specific phrases before "hits" and "runs")
+  [/hits\s*\+\s*runs\s*\+\s*rbis?|h\s*\+\s*r\s*\+\s*rbi|hits,?\s*carreras\s*(y|\+)\s*(carreras\s*)?impulsadas/, "hits_runs_rbis"],
+  [/hits allowed|hits permitidos|imparables permitidos/, "hits_allowed"],
+  [/earned runs|carreras limpias/, "earned_runs"],
+  [/outs recorded|pitching outs|outs (registrados|lanzados)/, "outs_recorded"],
+  [/strikeouts?|ponches|chocolates|\bks\b/, "pitcher_strikeouts"],
+  [/total bases|bases totales/, "total_bases"],
+  [/home runs?|\bhrs?\b|jonron(es)?|cuadrangular(es)?/, "home_runs"],
+  [/\brbis?\b|carreras impulsadas|impulsadas/, "rbis"],
+  [/runs scored|\bruns\b|carreras anotadas/, "runs"],
+  [/\bhits?\b|imparables/, "hits"],
+  // Hockey — EN / ES
+  [/shots on goal|\bsog\b|tiros\s*(a|al)\s*(gol|puerta|marco|arco)/, "shots_on_goal"],
+  [/saves|atajadas|paradas/, "saves"],
+  [/goal\s*scorer|\bgoals?\b|goles|anotar (un )?gol/, "goals"],
   // Spanish yardage phrases ("YDS DE RECEPCION", "yardas por pase", "yardas terrestres")
   [/(yds|yardas)\s*(de|por)\s*recepci/, "receiving_yards"],
   [/(tds?|touchdowns?|anotaciones)\s*(de|por)\s*pase/, "passing_tds"],
@@ -29,6 +49,8 @@ const MARKET_SYNONYMS: [RegExp, MarketKey][] = [
   [/triples/, "threes"],
   [/rebotes/, "rebounds"],
   [/asistencias/, "assists"],
+  [/robos/, "steals"],
+  [/bloqueos|tapones/, "blocks"],
   [/puntos/, "points"],
   // English
   [/pass(ing)?\s*(yds|yards)/, "passing_yards"],
@@ -41,8 +63,34 @@ const MARKET_SYNONYMS: [RegExp, MarketKey][] = [
   [/three|3pm|3-pointers?/, "threes"],
   [/rebounds?|\breb\b/, "rebounds"],
   [/assists?|\bast\b/, "assists"],
+  [/steals?|\bstl\b/, "steals"],
+  [/blocks?|\bblk\b/, "blocks"],
   [/points?|\bpts\b/, "points"],
 ];
+
+/** Hockey uses the same words as basketball for points and assists; the player's sport decides. */
+export function marketForSport(market: MarketKey, sport: SportKey): MarketKey {
+  if (sport === "nhl") {
+    if (market === "points") return "nhl_points";
+    if (market === "assists") return "nhl_assists";
+  }
+  return market;
+}
+
+/** The leagues a parsed slip touches: what the reader said, else what the prop types imply. */
+export function sportsForSlip(slip: ParsedSlip): SportKey[] {
+  const out = new Set<SportKey>();
+  for (const leg of slip.legs) {
+    if (leg.sport) {
+      out.add(leg.sport);
+      continue;
+    }
+    const market = matchMarket(leg.market);
+    if (market) for (const s of MARKETS[market].sport) out.add(s);
+    if (market === "points" || market === "assists") out.add("nhl");
+  }
+  return out.size ? [...out] : ["nfl", "nba", "nhl", "mlb"];
+}
 
 /**
  * Variants that share words with supported markets but settle differently
@@ -114,9 +162,25 @@ function matchByName(name: string, players: CatalogPlayer[]): { player: CatalogP
   return byLast.length === 1 ? { player: byLast[0], exact: false } : null;
 }
 
-/** Players and their available markets across the upcoming slate. */
-export async function buildCatalog(provider: SportsDataProvider): Promise<CatalogGame[]> {
-  const games = await provider.getGames();
+/**
+ * Players and their available markets across the upcoming slate, limited to
+ * the leagues on the slip. College football has dozens of games a week, so it
+ * is narrowed to the teams the slip names when it names any.
+ */
+export async function buildCatalog(provider: SportsDataProvider, filter: { sports?: SportKey[]; teamHints?: string[] } = {}): Promise<CatalogGame[]> {
+  const sports = filter.sports ? new Set(filter.sports) : null;
+  let games = (await provider.getGames()).filter((g) => g.status === "scheduled" && (!sports || sports.has(g.sport)));
+  const hints = (filter.teamHints ?? []).map((h) => fold(h).trim()).filter((h) => h.length >= 2);
+  if (hints.length && games.some((g) => g.sport === "ncaaf")) {
+    const teams = new Map((await provider.getTeams("ncaaf")).map((t) => [t.id, t]));
+    const named = (id: string) => {
+      const t = teams.get(id);
+      if (!t) return false;
+      const words = [t.abbreviation, t.city, t.name, `${t.city} ${t.name}`].map((w) => fold(w));
+      return hints.some((h) => words.some((w) => w === h || (h.length >= 4 && w.includes(h))));
+    };
+    games = games.filter((g) => g.sport !== "ncaaf" || named(g.homeTeamId) || named(g.awayTeamId));
+  }
   return Promise.all(
     games.map(async (game) => {
       const [players, props, home, away] = await Promise.all([
@@ -138,11 +202,12 @@ export async function buildCatalog(provider: SportsDataProvider): Promise<Catalo
             const quoted = props
               .filter((m) => m.playerId === p.id)
               .map((m) => ({ market: m.market, line: m.line, overOdds: m.overOdds, underOdds: m.underOdds, alternates: m.alternates, priced: m.priced !== false }));
-            const extra = (DEFAULT_MARKETS_BY_POSITION[p.position] ?? [])
+            const extra = defaultMarketsFor(p.sport, p.position)
               .filter((k) => !quoted.some((q) => q.market === k))
               .map((k) => ({ market: k, line: null, overOdds: Number.NaN, underOdds: Number.NaN, priced: false }));
             return {
               id: p.id,
+              sport: p.sport,
               name: p.name,
               position: p.position,
               teamId: p.teamId,
@@ -166,7 +231,7 @@ export function pickFor(player: CatalogPlayer, market: MarketKey, direction: Dir
   const m = player.markets.find((x) => x.market === market);
   return {
     id,
-    sport: "nfl",
+    sport: player.sport,
     gameId: player.gameId,
     playerId: player.id,
     playerName: player.name,
@@ -187,9 +252,11 @@ export function normalizeSlip(slip: ParsedSlip, catalog: CatalogGame[], newId: (
   return slip.legs.map((raw) => normalizeLeg(raw, players, pricedGames, newId()));
 }
 
-function normalizeLeg(raw: ParsedLeg, players: CatalogPlayer[], pricedGames: Set<string>, id: string): NormalizedLeg {
+function normalizeLeg(raw: ParsedLeg, allPlayers: CatalogPlayer[], pricedGames: Set<string>, id: string): NormalizedLeg {
   const issues: string[] = [];
-  const found = matchPlayer(raw.player, players, raw.team);
+  // When the reader named the league, don't let a same-named player in another sport win.
+  const inSport = raw.sport ? allPlayers.filter((p) => p.sport === raw.sport) : allPlayers;
+  const found = matchPlayer(raw.player, inSport.length ? inSport : allPlayers, raw.team);
   if (!found) {
     return {
       id,
@@ -202,11 +269,15 @@ function normalizeLeg(raw: ParsedLeg, players: CatalogPlayer[], pricedGames: Set
   const { player } = found;
   if (!found.exact) issues.push(`Matched "${raw.player}" to ${player.name} by last name.`);
 
-  const market = matchMarket(raw.market);
+  const matched = matchMarket(raw.market);
+  const market = matched ? marketForSport(matched, player.sport) : null;
   if (!market) {
     return { id, raw, status: "review", pick: null, issues: [...issues, raw.market ? `Didn't recognize the prop "${raw.market}". Pick it below.` : "No prop category was readable."] };
   }
   const def = MARKETS[market];
+  if (!def.sport.includes(player.sport)) {
+    return { id, raw, status: "review", pick: null, issues: [...issues, `"${raw.market}" isn't a ${player.sport.toUpperCase()} prop we track for ${player.name}. Pick it below.`] };
+  }
   const listed = player.markets.find((m) => m.market === market);
   const available = listed?.priced ? listed : undefined;
   // Only worth flagging when this game has sportsbook quotes and this prop isn't among them.

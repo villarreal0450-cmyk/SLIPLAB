@@ -112,12 +112,31 @@ export const seasonStats: PlayerSeasonStats[] = [
 
 /* ---------- Team stats ---------- */
 
-const team = (abbr: string, offense: TeamStats["offense"], defense: TeamStats["defense"]): TeamStats => ({
+type MockDefense = {
+  pointsAllowedPerGame: number;
+  passYardsAllowedPerGame: number;
+  passYardsAllowedRank: number;
+  rushYardsAllowedPerGame: number;
+  rushYardsAllowedRank: number;
+  receivingYardsAllowedPerGame: number;
+  rushTdsAllowedPerGame: number;
+  sacksPerGame: number;
+};
+
+/** Demo ranks are hand-set across a 32-team league; receiving and TD signals share the pass and run ranks. */
+const team = (abbr: string, offense: TeamStats["offense"], d: MockDefense): TeamStats => ({
   teamId: teamId(abbr),
   season: 2026,
   gamesPlayed: 5,
   offense,
-  defense,
+  signals: {
+    passYardsAllowed: { perGame: d.passYardsAllowedPerGame, rank: d.passYardsAllowedRank, leagueSize: 32 },
+    receivingYardsAllowed: { perGame: d.receivingYardsAllowedPerGame, rank: d.passYardsAllowedRank, leagueSize: 32 },
+    rushYardsAllowed: { perGame: d.rushYardsAllowedPerGame, rank: d.rushYardsAllowedRank, leagueSize: 32 },
+    rushTdsAllowed: { perGame: d.rushTdsAllowedPerGame, rank: d.rushYardsAllowedRank, leagueSize: 32 },
+    pointsAllowed: { perGame: d.pointsAllowedPerGame, rank: Math.round((d.passYardsAllowedRank + d.rushYardsAllowedRank) / 2), leagueSize: 32 },
+    sacks: { perGame: d.sacksPerGame, rank: 16, leagueSize: 32 },
+  },
 });
 
 export const teamStats: TeamStats[] = [

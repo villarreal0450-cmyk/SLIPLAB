@@ -13,6 +13,8 @@ export interface ScoringFactor {
   label: string;
   /** Default weight; the engine may override per market later. */
   weight: number;
+  /** When false, the factor doesn't apply to this pick at all (not "missing data"). */
+  appliesTo?(ctx: PickContext): boolean;
   evaluate(ctx: PickContext): FactorResult | null;
 }
 

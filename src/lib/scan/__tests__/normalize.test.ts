@@ -1,6 +1,6 @@
 import { beforeAll, describe, expect, it } from "vitest";
 import { MockSportsDataProvider } from "@/lib/sports/mock/mockProvider";
-import { buildCatalog, matchMarket, matchPlayer, normalizeSlip } from "../normalize";
+import { buildCatalog, marketForSport, matchMarket, matchPlayer, normalizeSlip, sportsForSlip } from "../normalize";
 import { SAMPLE_SLIP } from "../sample";
 import type { CatalogGame, ParsedSlip } from "../types";
 
@@ -24,6 +24,32 @@ describe("matchMarket", () => {
     expect(matchMarket("First TD Scorer")).toBeNull();
     expect(matchMarket("1st Half Passing Yards")).toBeNull();
   });
+
+  it("maps basketball, hockey and baseball props in English and Spanish", () => {
+    expect(matchMarket("Pts + Reb + Ast")).toBe("pra");
+    expect(matchMarket("Puntos + Rebotes")).toBe("points_rebounds");
+    expect(matchMarket("Points + Assists")).toBe("points_assists");
+    expect(matchMarket("Triples")).toBe("threes");
+    expect(matchMarket("Shots on Goal")).toBe("shots_on_goal");
+    expect(matchMarket("Tiros a gol")).toBe("shots_on_goal");
+    expect(matchMarket("Saves")).toBe("saves");
+    expect(matchMarket("Anytime Goal Scorer")).toBe("goals");
+    expect(matchMarket("Hits + Runs + RBIs")).toBe("hits_runs_rbis");
+    expect(matchMarket("Earned Runs Allowed")).toBe("earned_runs");
+    expect(matchMarket("Ponches")).toBe("pitcher_strikeouts");
+    expect(matchMarket("Total Bases")).toBe("total_bases");
+    expect(matchMarket("Carreras impulsadas")).toBe("rbis");
+    expect(matchMarket("Hits")).toBe("hits");
+    expect(marketForSport("points", "nhl")).toBe("nhl_points");
+    expect(marketForSport("points", "nba")).toBe("points");
+  });
+
+  it("works out which leagues a slip needs from the reader or the props", () => {
+    const leg = (market: string, sport: "nba" | null = null) => ({ raw_text: market, player: "X", team: null, market, line: 1.5, direction: "over" as const, odds: null, sport });
+    expect(sportsForSlip({ ...SAMPLE_SLIP, legs: [leg("Ponches")] })).toEqual(["mlb"]);
+    expect(sportsForSlip({ ...SAMPLE_SLIP, legs: [leg("Points", "nba")] })).toEqual(["nba"]);
+    expect(sportsForSlip({ ...SAMPLE_SLIP, legs: [leg("Passing Yards")] }).sort()).toEqual(["ncaaf", "nfl"]);
+  });
 });
 
 describe("normalizeSlip", () => {
@@ -38,10 +64,10 @@ describe("normalizeSlip", () => {
     const slip: ParsedSlip = {
       ...SAMPLE_SLIP,
       legs: [
-        { raw_text: "Prescott pass yds 255.5", player: "Prescott", team: null, market: "Pass Yds", line: 255.5, direction: null, odds: null },
-        { raw_text: "Lamb receiving", player: "CeeDee Lamb", team: null, market: "Receiving Yards", line: null, direction: "over", odds: null },
-        { raw_text: "Someone Else 2+ sacks", player: "Someone Else", team: null, market: "Sacks", line: 2, direction: "over", odds: null },
-        { raw_text: "Pickens longest reception", player: "George Pickens", team: null, market: "Longest Reception", line: 20, direction: "over", odds: null },
+        { raw_text: "Prescott pass yds 255.5", player: "Prescott", team: null, market: "Pass Yds", line: 255.5, direction: null, odds: null, sport: null },
+        { raw_text: "Lamb receiving", player: "CeeDee Lamb", team: null, market: "Receiving Yards", line: null, direction: "over", odds: null, sport: null },
+        { raw_text: "Someone Else 2+ sacks", player: "Someone Else", team: null, market: "Sacks", line: 2, direction: "over", odds: null, sport: null },
+        { raw_text: "Pickens longest reception", player: "George Pickens", team: null, market: "Longest Reception", line: 20, direction: "over", odds: null, sport: null },
       ],
     };
     const [prescott, lamb, unknown, oddMarket] = normalizeSlip(slip, catalog, newId);
@@ -58,7 +84,7 @@ describe("normalizeSlip", () => {
 });
 
 describe("team-aware player matching", () => {
-  const player = (id: string, name: string, teamAbbr: string) => ({ id, name, teamAbbr, position: "WR", teamId: "", opponentTeamId: "", opponentAbbr: "", teamColor: "#000", gameId: "g", markets: [] });
+  const player = (id: string, name: string, teamAbbr: string) => ({ id, sport: "nfl" as const, name, teamAbbr, position: "WR", teamId: "", opponentTeamId: "", opponentAbbr: "", teamColor: "#000", gameId: "g", markets: [] });
   const league = [player("a", "Javonte Williams", "DAL"), player("b", "Josh Williams", "TB"), player("c", "Jalon Daniels", "TB"), player("d", "Jayden Daniels", "WSH")];
 
   it("uses the printed team to resolve ambiguous initials", () => {
@@ -95,11 +121,11 @@ describe("Spanish-language slips (Draftea / Caliente style)", () => {
       combined_odds: 1066,
       stake: 125,
       legs: [
-        { raw_text: "YDS DE RECEPCIÓN J. Williams DAL 16.0+", player: "J. Williams", team: "DAL", market: "YDS DE RECEPCIÓN", line: 16, direction: "over", odds: null },
-        { raw_text: "YDS DE PASE D. Prescott DAL 0.5+", player: "D. Prescott", team: "DAL", market: "YDS DE PASE", line: 0.5, direction: "over", odds: -250 },
-        { raw_text: "ACARREOS B. Irving TB 13.0+", player: "B. Irving", team: "TB", market: "ACARREOS", line: 13, direction: "over", odds: null },
-        { raw_text: "ACARREOS J. Daniels TB 7.0+", player: "J. Daniels", team: "TB", market: "ACARREOS", line: 7, direction: "over", odds: null },
-        { raw_text: "YDS DE RECEPCIÓN C. Godwin TB 30.0+", player: "C. Godwin", team: "TB", market: "YDS DE RECEPCIÓN", line: 30, direction: "over", odds: null },
+        { raw_text: "YDS DE RECEPCIÓN J. Williams DAL 16.0+", player: "J. Williams", team: "DAL", market: "YDS DE RECEPCIÓN", line: 16, direction: "over", odds: null, sport: null },
+        { raw_text: "YDS DE PASE D. Prescott DAL 0.5+", player: "D. Prescott", team: "DAL", market: "YDS DE PASE", line: 0.5, direction: "over", odds: -250, sport: "nfl" },
+        { raw_text: "ACARREOS B. Irving TB 13.0+", player: "B. Irving", team: "TB", market: "ACARREOS", line: 13, direction: "over", odds: null, sport: null },
+        { raw_text: "ACARREOS J. Daniels TB 7.0+", player: "J. Daniels", team: "TB", market: "ACARREOS", line: 7, direction: "over", odds: null, sport: null },
+        { raw_text: "YDS DE RECEPCIÓN C. Godwin TB 30.0+", player: "C. Godwin", team: "TB", market: "YDS DE RECEPCIÓN", line: 30, direction: "over", odds: null, sport: null },
       ],
     };
     const legs = normalizeSlip(slip, catalog, newId);

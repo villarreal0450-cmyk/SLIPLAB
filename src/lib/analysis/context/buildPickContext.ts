@@ -1,5 +1,5 @@
 import type { SportsDataProvider } from "@/lib/sports/provider";
-import type { Pick, PickContext } from "@/lib/types";
+import { isFootball, type Pick, type PickContext } from "@/lib/types";
 
 /**
  * Gather everything the scoring engine (and later the LLM) needs for one pick.
@@ -7,20 +7,22 @@ import type { Pick, PickContext } from "@/lib/types";
  * data collection stays separate from scoring and explanation.
  */
 export async function buildPickContext(pick: Pick, provider: SportsDataProvider): Promise<PickContext> {
-  const [player, team, opponent, game, gameOdds, recentGames, seasonStats, teamStats, opponentStats, ownInjuries, oppInjuries, marketLine] =
+  const [player, team, opponent, game, gameOdds, recentGames, seasonStats, teamStats, opponentStats, ownInjuries, oppInjuries, marketLine, expertProjection] =
     await Promise.all([
       provider.getPlayer(pick.playerId),
       provider.getTeam(pick.teamId),
       provider.getTeam(pick.opponentTeamId),
       provider.getGame(pick.gameId),
       provider.getGameOdds(pick.gameId),
-      provider.getPlayerGameLog(pick.playerId, { limit: 5 }),
+      // Football plays weekly; daily sports need a few more games to read form.
+      provider.getPlayerGameLog(pick.playerId, { limit: isFootball(pick.sport) ? 5 : 8 }),
       provider.getPlayerSeasonStats(pick.playerId),
       provider.getTeamStats(pick.teamId),
       provider.getTeamStats(pick.opponentTeamId),
       provider.getInjuries(pick.teamId),
       provider.getInjuries(pick.opponentTeamId),
       provider.getMarketLine(pick.playerId, pick.gameId, pick.market),
+      provider.getExpertProjection?.(pick.playerId, pick.gameId).catch(() => null) ?? Promise.resolve(null),
     ]);
 
   if (!player) throw new PickContextError(`Unknown player "${pick.playerId}"`, pick.id);
@@ -40,6 +42,7 @@ export async function buildPickContext(pick: Pick, provider: SportsDataProvider)
     opponentStats,
     injuries: { own: ownInjuries, opponent: oppInjuries },
     marketLine,
+    expertProjection,
     dataSource: provider.info,
   };
 }

@@ -1,5 +1,5 @@
 import type { Pick } from "./picks";
-import type { Injury, MarketLine, PlayerGameLog, PlayerSeasonStats, TeamStats, Game, GameOdds, Player, Team } from "./sports";
+import type { Injury, MarketLine, PlayerGameLog, PlayerSeasonStats, StatLine, TeamStats, Game, GameOdds, Player, Team } from "./sports";
 
 /* ---------- Scores ---------- */
 
@@ -52,8 +52,17 @@ export type PickContext = {
   opponentStats: TeamStats | null;
   injuries: { own: Injury[]; opponent: Injury[] };
   marketLine: MarketLine | null;
+  /** Professional projection for this game (NFL: ESPN's fantasy analysts), when one is published. */
+  expertProjection?: ExpertProjection | null;
   /** Describes where the data came from, so UI can label mock data honestly. */
   dataSource: DataSourceInfo;
+};
+
+export type ExpertProjection = {
+  /** Who made it, shown to the user. */
+  source: string;
+  /** Projected stat line for this game. */
+  stats: StatLine;
 };
 
 export type DataSourceInfo = {
@@ -73,6 +82,8 @@ export type Projection = {
   distribution: { bucketStart: number; bucketEnd: number; weight: number }[];
   /** Estimated hit rate for the line, 0..1. Presented as analyst confidence, never as a guarantee. */
   hitRate: number;
+  /** What the projection blends: our stats model, professional analysts, the betting market. */
+  sources?: { stats: number; experts?: number; market?: number };
 };
 
 export type PickAnalysis = {

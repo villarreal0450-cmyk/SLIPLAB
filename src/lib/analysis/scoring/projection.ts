@@ -1,45 +1,69 @@
 import { MARKETS, type PickContext, type Projection } from "@/lib/types";
-import { clamp, mean, normalCdf, stdev } from "./math";
+import { matchupEdge } from "./factors/matchup";
+import { readUsage } from "./usage";
+import { clamp, normalCdf, stdev } from "./math";
 
 /** The raw model behind the projection: center, spread and chance the pick clears. */
-export type PickModel = { value: number; sd: number; pHit: number | null };
+export type PickModel = { value: number; sd: number; pHit: number | null; sources: NonNullable<Projection["sources"]> };
+
+/** How much each source counts when it is available (renormalized over what exists). */
+const SOURCE_WEIGHTS = { stats: 0.4, experts: 0.35, market: 0.25 };
 
 /**
- * Blend recent form, season baseline and a matchup adjustment, then model the
- * outcome as roughly normal. The spread floor (25% of the projection) is wide
- * on purpose: real stat lines have fatter tails than a tidy bell curve.
- * `pHit` is unclamped so the engine can tell "very likely" from "near certain".
+ * Our stats model blends recent form (weighted by the role the player had in
+ * each game), the season baseline and the matchup. That number is then blended
+ * with professional projections (where published) and the betting market's
+ * line, because a box-score average alone misses context the market and
+ * analysts already price in: a player just back from injury, a new role.
+ * The spread floor (25% of the projection) is wide on purpose: real stat
+ * lines have fatter tails than a tidy bell curve. `pHit` is unclamped so the
+ * engine can tell "very likely" from "near certain".
  */
 export function modelPick(ctx: PickContext): PickModel | null {
   const def = MARKETS[ctx.pick.market];
   if (def.kind === "yes_no") return null;
 
-  const recent = ctx.recentGames.map((g) => g.stats[def.statKey]).filter((v): v is number => typeof v === "number");
+  const recent = ctx.recentGames.map((g) => g.stats[def.statKey]);
   const season = ctx.seasonStats?.averages[def.statKey];
-  if (recent.length < 3 && typeof season !== "number") return null;
+  const known = recent.filter((v): v is number => typeof v === "number");
+  if (known.length < 3 && typeof season !== "number") return null;
 
-  const recentAvg = recent.length ? mean(recent) : (season as number);
+  const { weights } = readUsage(ctx);
+  let wSum = 0;
+  let vSum = 0;
+  recent.forEach((v, i) => {
+    if (typeof v !== "number") return;
+    wSum += weights[i];
+    vSum += v * weights[i];
+  });
+  const recentAvg = wSum > 0 ? vSum / wSum : (season as number);
   const baseline = typeof season === "number" ? season : recentAvg;
 
-  // Matchup multiplier: opponent allows X vs a rough league average.
-  let matchupMult = 1;
-  const d = ctx.opponentStats?.defense;
-  if (d) {
-    const isPass = ["passing_yards", "completions", "passing_tds", "receiving_yards", "receptions"].includes(ctx.pick.market);
-    const rank = isPass ? d.passYardsAllowedRank : d.rushYardsAllowedRank;
-    matchupMult = 1 + ((rank - 16.5) / 31) * 0.16; // ±8%
-  }
+  // Matchup multiplier: up to ±8% for the softest / toughest opponent.
+  const edge = matchupEdge(ctx);
+  const matchupMult = edge ? 1 + (edge.softness - 0.5) * 0.16 : 1;
+  const stats = recentAvg * 0.5 + baseline * 0.3 + baseline * matchupMult * 0.2;
 
-  const value = recentAvg * 0.5 + baseline * 0.3 + baseline * matchupMult * 0.2;
-  const sd = Math.max(stdev(recent), value * 0.25, 0.5);
+  const experts = ctx.expertProjection?.stats[def.statKey];
+  const market = ctx.marketLine && !ctx.marketLine.milestone && ctx.marketLine.line !== null ? ctx.marketLine.line : undefined;
+  const parts: [number, number][] = [[stats, SOURCE_WEIGHTS.stats]];
+  if (typeof experts === "number" && experts > 0) parts.push([experts, SOURCE_WEIGHTS.experts]);
+  if (typeof market === "number") parts.push([market, SOURCE_WEIGHTS.market]);
+  const totalWeight = parts.reduce((a, [, w]) => a + w, 0);
+  const value = parts.reduce((a, [v, w]) => a + v * w, 0) / totalWeight;
+
+  const sd = Math.max(stdev(known), value * 0.25, 0.5);
+  const sources = { stats: round1(stats), ...(typeof experts === "number" && experts > 0 ? { experts: round1(experts) } : {}), ...(typeof market === "number" ? { market } : {}) };
   const line = ctx.pick.line;
-  if (line === null) return { value, sd, pHit: null };
+  if (line === null) return { value, sd, pHit: null, sources };
 
   // Whole-number lines ("250+") hit on >= line, so the threshold sits half a unit lower.
   const threshold = Number.isInteger(line) ? line - 0.5 : line;
   const pOver = 1 - normalCdf((threshold - value) / sd);
-  return { value, sd, pHit: ctx.pick.direction === "over" ? pOver : 1 - pOver };
+  return { value, sd, pHit: ctx.pick.direction === "over" ? pOver : 1 - pOver, sources };
 }
+
+const round1 = (v: number) => Math.round(v * 10) / 10;
 
 /**
  * A deliberately simple projection for the UI: a center value and a sketched
@@ -62,5 +86,5 @@ export function projectPick(ctx: PickContext): Projection | null {
     return { bucketStart: Math.round(start), bucketEnd: Math.round(end), weight: Math.round(weight * 1000) / 1000 };
   });
 
-  return { value: Math.round(value), line: ctx.pick.line, distribution, hitRate: clamp(model.pHit ?? 0.5, 0.02, 0.98) };
+  return { value: Math.round(value), line: ctx.pick.line, distribution, hitRate: clamp(model.pHit ?? 0.5, 0.02, 0.98), sources: model.sources };
 }

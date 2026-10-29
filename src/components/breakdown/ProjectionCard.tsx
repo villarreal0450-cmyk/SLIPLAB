@@ -22,11 +22,26 @@ export function ProjectionCard({ breakdown: b }: { breakdown: PickBreakdown }) {
         </div>
       </div>
       <ProjectionChart projection={projection} direction={b.pick.direction} unit={b.market.unit} />
-      {b.marketLine?.line !== null && b.marketLine?.line !== undefined && (
-        <p className="mt-2 text-xs text-muted-foreground tabular">
-          Market line {b.marketLine.line} · your line {projection.line}
-        </p>
+      {projection.sources && (
+        <dl className="mt-3 grid grid-cols-3 gap-2 rounded-2xl bg-surface-sunken p-3 text-center text-xs">
+          <div>
+            <dt className="text-muted-foreground">Our stats</dt>
+            <dd className="mt-0.5 font-semibold tabular text-foreground">{projection.sources.stats}</dd>
+          </div>
+          <div>
+            <dt className="text-muted-foreground">ESPN analysts</dt>
+            <dd className="mt-0.5 font-semibold tabular text-foreground">{projection.sources.experts ?? "—"}</dd>
+          </div>
+          <div>
+            <dt className="text-muted-foreground">Market line</dt>
+            <dd className="mt-0.5 font-semibold tabular text-foreground">{projection.sources.market ?? "—"}</dd>
+          </div>
+        </dl>
       )}
+      <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
+        Our projection blends these sources. Games where the player had a clearly smaller role than usual count less.
+        {projection.line !== null ? ` Your line: ${projection.line}.` : ""}
+      </p>
     </section>
   );
 }

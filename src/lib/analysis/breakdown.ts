@@ -1,4 +1,4 @@
-import { MARKETS, type CorrelationFinding, type GameScript, type Injury, type MarketKey, type ParlayAnalysis, type Pick, type PickAnalysis, type PickContext, type StatKey, type Team } from "@/lib/types";
+import { MARKET_SIGNALS, MARKETS, SIGNALS, type CorrelationFinding, type SignalKey, type GameScript, type Injury, type MarketKey, type ParlayAnalysis, type Pick, type PickAnalysis, type PickContext, type StatKey, type Team } from "@/lib/types";
 import { isHit } from "./scoring/math";
 
 /**
@@ -43,15 +43,9 @@ export type RecentGame = {
 };
 
 export type DefenseProfile = {
-  pointsAllowed: number;
-  passYardsAllowed: number;
-  passRank: number;
-  rushYardsAllowed: number;
-  rushRank: number;
-  wrYardsAllowed: number;
-  sacksPerGame: number | null;
-  /** Which unit matters most for this market. */
-  focus: "pass" | "run";
+  /** "Tampa Bay defense", "Milwaukee pitching & lineup". */
+  title: string;
+  rows: { key: SignalKey; label: string; perGame: number; rank: number; leagueSize: number; focus: boolean }[];
 };
 
 const USAGE: Partial<Record<MarketKey, { key: StatKey; label: string; shortLabel: string }>> = {
@@ -63,9 +57,37 @@ const USAGE: Partial<Record<MarketKey, { key: StatKey; label: string; shortLabel
   rushing_yards: { key: "rushingAttempts", label: "Carries", shortLabel: "Car" },
   rushing_attempts: { key: "rushingAttempts", label: "Carries", shortLabel: "Car" },
   anytime_td: { key: "redZoneTouches", label: "Red-zone touches", shortLabel: "RZ touches" },
+  ...Object.fromEntries(
+    (["points", "rebounds", "assists", "threes", "pra", "points_rebounds", "points_assists", "rebounds_assists", "steals", "blocks"] as const).map((m) => [
+      m,
+      { key: "minutes" as StatKey, label: "Minutes", shortLabel: "Min" },
+    ]),
+  ),
+  ...Object.fromEntries(
+    (["nhl_points", "nhl_assists", "goals", "shots_on_goal"] as const).map((m) => [m, { key: "timeOnIce" as StatKey, label: "Time on ice (min)", shortLabel: "TOI" }]),
+  ),
+  saves: { key: "shotsAgainst", label: "Shots faced", shortLabel: "SA" },
+  ...Object.fromEntries(
+    (["hits", "total_bases", "home_runs", "rbis", "runs", "hits_runs_rbis"] as const).map((m) => [m, { key: "atBats" as StatKey, label: "At-bats", shortLabel: "AB" }]),
+  ),
+  ...Object.fromEntries(
+    (["pitcher_strikeouts", "hits_allowed", "earned_runs", "outs_recorded"] as const).map((m) => [m, { key: "battersFaced" as StatKey, label: "Batters faced", shortLabel: "BF" }]),
+  ),
 };
 
-const RUN_MARKETS = new Set<MarketKey>(["rushing_yards", "rushing_attempts", "anytime_td"]);
+const PITCHER_MARKETS = new Set<MarketKey>(["pitcher_strikeouts", "hits_allowed", "earned_runs", "outs_recorded"]);
+
+function defenseProfile(ctx: PickContext): DefenseProfile | null {
+  const signals = ctx.opponentStats?.signals;
+  if (!signals) return null;
+  const focus = MARKET_SIGNALS[ctx.pick.market].signal;
+  const rows = (Object.entries(signals) as [SignalKey, NonNullable<(typeof signals)[SignalKey]>][])
+    .map(([key, v]) => ({ key, label: SIGNALS[key].label, perGame: v.perGame, rank: v.rank, leagueSize: v.leagueSize, focus: key === focus }))
+    .sort((a, b) => Number(b.focus) - Number(a.focus));
+  if (!rows.length) return null;
+  const unit = ctx.team.sport === "mlb" ? (PITCHER_MARKETS.has(ctx.pick.market) ? "lineup" : "pitching") : "defense";
+  return { title: `${ctx.opponent.city} ${unit}`, rows };
+}
 
 export function buildPickBreakdown(
   pickId: string,
@@ -97,7 +119,6 @@ export function buildPickBreakdown(
   const usage = usageDef && usageValues.some((v) => v !== null) ? { label: usageDef.label, shortLabel: usageDef.shortLabel, values: usageValues } : null;
 
   const graded = recentGames.filter((g) => g.hit !== null);
-  const d = ctx.opponentStats?.defense;
   const odds = ctx.gameOdds;
   const script = parlay.gameScripts.find((s) => s.gameId === ctx.game.id) ?? null;
 
@@ -135,18 +156,7 @@ export function buildPickBreakdown(
     },
     hitRate: graded.length ? { hits: graded.filter((g) => g.hit).length, games: graded.length } : null,
     marketLine: ctx.marketLine ? { line: ctx.marketLine.line, overOdds: ctx.marketLine.overOdds, underOdds: ctx.marketLine.underOdds } : null,
-    defense: d
-      ? {
-          pointsAllowed: d.pointsAllowedPerGame,
-          passYardsAllowed: d.passYardsAllowedPerGame,
-          passRank: d.passYardsAllowedRank,
-          rushYardsAllowed: d.rushYardsAllowedPerGame,
-          rushRank: d.rushYardsAllowedRank,
-          wrYardsAllowed: d.receivingYardsAllowedPerGame,
-          sacksPerGame: d.sacksPerGame,
-          focus: RUN_MARKETS.has(ctx.pick.market) ? "run" : "pass",
-        }
-      : null,
+    defense: defenseProfile(ctx),
     injuries: ctx.injuries,
     gameScript: script
       ? { script, effect: script.helpedPickIds.includes(pickId) ? "helped" : script.hurtPickIds.includes(pickId) ? "hurt" : null }

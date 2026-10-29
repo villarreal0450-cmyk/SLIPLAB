@@ -34,12 +34,26 @@ change scores and must disclose `missingData`.
 `SportsDataProvider` (`src/lib/sports/provider.ts`) is the only read path.
 `getSportsDataProvider()` picks the implementation from `SPORTS_DATA_PROVIDER`:
 
-- `espn` — `EspnSportsDataProvider`: live NFL schedule, teams, rosters, injuries,
-  game logs and team stats from ESPN's public site API (no key). Player props come
-  from `TheOddsApi` when `ODDS_API_KEY` is set. Mapping lives in `espn/map.ts`
-  (pure, unit-tested); all HTTP goes through `http.ts` (TTL cache, de-dup, timeout,
-  stale-on-error).
+- `espn` — `EspnSportsDataProvider`: live NFL, college football (FBS), NBA, NHL
+  and MLB schedules, teams, rosters, injuries, game logs and team stats from ESPN's
+  public site API (no key). The facade routes each call by id to one `EspnLeague`
+  (`espn/league.ts`); what differs per league (paths, weekly vs daily schedule,
+  roster groups, positions, game-log columns, prop names) lives in
+  `espn/leagues.ts`. NFL ids stay prefix-free (`espn-401…`, `nfl-dal`); other
+  leagues are namespaced (`espn-nba-401…`, `nba-lal`, `ncaaf-2641`), see
+  `espn/ids.ts`. Player props come from `TheOddsApi` when `ODDS_API_KEY` is set
+  and has credits, merged with the free DraftKings lines ESPN republishes (lines
+  only, no prices; "N or more" milestones are flagged and never recommended).
+  NFL players also get ESPN's fantasy-analyst projection (`espn/projections.ts`).
+  Mapping is pure and unit-tested; all HTTP goes through `http.ts` (TTL cache,
+  de-dup, timeout, stale-on-error).
 - `mock` — labelled demo slate for tests and offline work.
+
+Opponent strength is sport-agnostic: `TeamStats.signals` holds league-ranked
+tendencies (points/goals/hits allowed, shots for, lineup strikeouts…) and
+`MARKET_SIGNALS` says which one moves each market. Projections blend our
+stats model (recent games weighted by the role the player had, plus last
+season when this season is thin) with analyst projections and the market line.
 
 Every provider exposes `info.isMock`; `<MockDataBadge>` renders when it's true.
 Markets without a sportsbook quote are "unpriced" (`MarketLine.priced === false`):

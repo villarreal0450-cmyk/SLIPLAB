@@ -13,18 +13,9 @@ function ordinal(n: number) {
   return `${n}${s[(v - 20) % 10] ?? s[v] ?? s[0]}`;
 }
 
-/** Opponent defensive profile and game environment. Ranks: 1 = toughest defense. */
+/** Opponent profile (ranked across the league) and game environment. */
 export function MatchupPanel({ breakdown: b }: { breakdown: PickBreakdown }) {
   const d = b.defense;
-  const rows = d
-    ? [
-        { label: "Pass yards allowed / game", value: d.passYardsAllowed, rank: d.passRank, focus: d.focus === "pass" },
-        { label: "Receiving yards allowed / game", value: d.wrYardsAllowed, rank: null, focus: false },
-        { label: "Rush yards allowed / game", value: d.rushYardsAllowed, rank: d.rushRank, focus: d.focus === "run" },
-        { label: "Points allowed / game", value: d.pointsAllowed, rank: null, focus: false },
-        { label: "Sacks / game (defense)", value: d.sacksPerGame === null ? "—" : d.sacksPerGame.toFixed(1), rank: null, focus: false },
-      ]
-    : [];
   const spread = b.game.spread;
 
   return (
@@ -32,24 +23,26 @@ export function MatchupPanel({ breakdown: b }: { breakdown: PickBreakdown }) {
       <section aria-labelledby="defense-heading" className="surface p-4 sm:p-5">
         <h2 id="defense-heading" className="mb-3 flex items-center gap-2.5 font-semibold tracking-tight">
           <TeamMark team={b.opponent} size="sm" />
-          {b.opponent.city} defense
+          {d?.title ?? `${b.opponent.city} defense`}
         </h2>
         {d ? (
           <dl className="flex flex-col divide-y divide-border">
-            {rows.map((r) => (
-              <div key={r.label} className="flex items-center justify-between gap-3 py-2.5 text-sm">
+            {d.rows.map((r) => (
+              <div key={r.key} className="flex items-center justify-between gap-3 py-2.5 text-sm">
                 <dt className={r.focus ? "font-medium" : "text-muted-foreground"}>{r.label}</dt>
                 <dd className="text-right tabular">
-                  <span className="font-medium">{r.value}</span>
-                  {r.rank !== null && <span className="ml-2 text-xs text-muted-foreground">{ordinal(r.rank)} of 32</span>}
+                  <span className="font-medium">{r.perGame}</span>
+                  <span className="ml-2 text-xs text-muted-foreground">
+                    {r.rank > r.leagueSize / 2 ? `${ordinal(r.leagueSize - r.rank + 1)}-most` : `${ordinal(r.rank)}-fewest`} of {r.leagueSize}
+                  </span>
                 </dd>
               </div>
             ))}
           </dl>
         ) : (
-          <p className="text-sm text-muted-foreground">No defensive data for this opponent yet.</p>
+          <p className="text-sm text-muted-foreground">No numbers for this opponent yet.</p>
         )}
-        {d && <p className="mt-3 text-xs text-muted-foreground">Ranks run from 1st (toughest) to 32nd (most generous). Highlighted rows matter most for this market.</p>}
+        {d && <p className="mt-3 text-xs text-muted-foreground">Ranked across the league. The highlighted row moves this market most.</p>}
       </section>
 
       <section aria-labelledby="env-heading" className="surface p-4 sm:p-5">
